@@ -1,15 +1,21 @@
 {
-  "name": "my-bot",
+  "name": "whatsapp-bot",
   "version": "1.0.0",
+  "description": "WhatsApp bot with anti-delete and menu features",
+  "main": "bot.js",
   "type": "module",
+  "scripts": {
+    "start": "node bot.js"
+  },
   "dependencies": {
     "@hapi/boom": "^10.0.1",
-    "@whiskeysockets/baileys": "^6.17.16",
-    "express": "^4.21.2",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7",
-    "pino": "^9.6.0",
-    "qrcode": "^1.5.4",
-    "socket.io": "^4.8.1"
+    "@whiskeysockets/baileys": "^6.7.6",
+    "express": "^4.19.2",
+    "pino": "^9.0.0",
+    "qrcode": "^1.5.3",
+    "socket.io": "^4.7.5"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
