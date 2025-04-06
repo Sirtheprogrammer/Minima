@@ -326,11 +326,11 @@ async function connectToWhatsApp(method, phoneNumber) {
                 const args = text.trim().split(/ +/);
                 const commandName = args.shift().toLowerCase();
                 
-                // Start typing indicator
-                await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
-                
-                // Check if it's a command (starts with .)
+                // Start typing indicator for 10 seconds
                 if (commandName.startsWith('.')) {
+                    await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
+                    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay
+                    
                     const actualCommand = commandName.substring(1);
                     
                     if (commands.has(actualCommand)) {
@@ -338,42 +338,77 @@ async function connectToWhatsApp(method, phoneNumber) {
                             console.log(`Executing command: ${actualCommand} with args:`, args);
                             const response = await commands.get(actualCommand).execute(sock, msg, args);
                             if (response) {
-                                // Send to the chat
                                 await sock.sendMessage(msg.key.remoteJid, { text: response });
-                                // Send to personal number if command was from web panel
                                 if (msg.key.remoteJid === 'web-panel') {
                                     await sendToPersonalNumber(sock, `Command '${actualCommand}' executed: ${response}`);
                                 }
-                                io.emit('message', { text: `Command '${actualCommand}' executed: ${response}` });
                             }
                         } catch (error) {
                             console.error(`Command execution error for ${actualCommand}:`, error);
                             const errorMessage = `Command '${actualCommand}' failed: ${error.message}`;
-                            io.emit('error', errorMessage);
                             await sock.sendMessage(msg.key.remoteJid, { text: errorMessage });
                             if (msg.key.remoteJid === 'web-panel') {
                                 await sendToPersonalNumber(sock, errorMessage);
                             }
                         }
                     } else {
-                        console.log(`Command not found: ${actualCommand}`);
                         const notFoundMessage = `Command not found: ${actualCommand}. Use .help to see available commands.`;
                         await sock.sendMessage(msg.key.remoteJid, { text: notFoundMessage });
                         if (msg.key.remoteJid === 'web-panel') {
                             await sendToPersonalNumber(sock, notFoundMessage);
                         }
                     }
+                    
+                    // Stop typing indicator
+                    await sock.sendPresenceUpdate('paused', msg.key.remoteJid);
                 }
-
-                // Stop typing indicator
-                await sock.sendPresenceUpdate('paused', msg.key.remoteJid);
             } catch (error) {
                 console.error('Message processing error:', error);
-                io.emit('error', `Message processing failed: ${error.message}`);
+                await sock.sendPresenceUpdate('paused', msg.key.remoteJid);
             }
         });
         
         sock.ev.on('creds.update', saveCreds);
+
+        // Handle deleted messages
+        sock.ev.on('message.delete', async (message) => {
+            try {
+                const deletedMessage = await getMessageFromStore(message);
+                if (deletedMessage) {
+                    const personalNumber = process.env.PERSONAL_NUMBER;
+                    if (personalNumber) {
+                        const sender = deletedMessage.key.participant || deletedMessage.key.remoteJid;
+                        const senderNumber = sender.split('@')[0];
+                        const chatName = deletedMessage.key.remoteJid.includes('@g.us') ? 
+                            (await sock.groupMetadata(deletedMessage.key.remoteJid)).subject : 
+                            'Private Chat';
+
+                        const notificationText = `*Message Deleted*\n\n` +
+                            `*From:* @${senderNumber}\n` +
+                            `*Chat:* ${chatName}\n` +
+                            `*Time:* ${new Date().toLocaleString()}\n\n` +
+                            `*Deleted Message:*\n${deletedMessage.message.conversation || 
+                            deletedMessage.message.extendedTextMessage?.text || 
+                            'Media Message'}`;
+
+                        await sock.sendMessage(`${personalNumber}@s.whatsapp.net`, {
+                            text: notificationText,
+                            mentions: [sender]
+                        });
+
+                        // If the deleted message contains media, forward it
+                        if (deletedMessage.message.imageMessage || 
+                            deletedMessage.message.videoMessage || 
+                            deletedMessage.message.audioMessage || 
+                            deletedMessage.message.stickerMessage) {
+                            await sock.forwardMessage(`${personalNumber}@s.whatsapp.net`, deletedMessage);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling deleted message:', error);
+            }
+        });
     } catch (error) {
         console.error('Connection error:', error);
         io.emit('error', `Connection failed: ${error.message}`);

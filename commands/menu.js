@@ -6,32 +6,55 @@ export default {
     description: 'Shows the bot menu with all available commands',
     async execute(sock, msg, args) {
         try {
-            const menuText = `🤖 *Minima Bot Menu*
-Welcome to Minima Bot! Here are all available commands:
+            const menuText = `
+╭━━━━━━━━━━━━━━━╮
+┃    *MINIMA BOT MENU*    
+┃    Version: 0.0.1
+╰━━━━━━━━━━━━━━━╯
 
-🛡️ *Moderation*
-\`.ban\`, \`.kick\`, \`.mute\`, \`.warn\`
+*🛡️ MODERATION*
+▢ .ban
+▢ .kick
+▢ .mute
+▢ .warn
 
-⚙️ *Settings*
-\`.prefix\`, \`.language\`, \`.welcome\`
+*⚙️ SETTINGS*
+▢ .prefix
+▢ .language
+▢ .welcome
 
-🎮 *Fun*
-\`.8ball\`, \`.roll\`, \`.coinflip\`, \`.rps\`
+*🎮 FUN*
+▢ .8ball
+▢ .roll
+▢ .coinflip
+▢ .rps
 
-ℹ️ *Info*
-\`.help\`, \`.ping\`, \`.info\`, \`.uptime\`
+*ℹ️ INFO*
+▢ .help
+▢ .ping
+▢ .info
+▢ .uptime
 
-🛠️ *Utility*
-\`.clear\`, \`.poll\`, \`.remind\`, \`.translate\`
+*🛠️ UTILITY*
+▢ .clear
+▢ .poll
+▢ .remind
+▢ .translate
 
-🎵 *Music*
-\`.play\`, \`.skip\`, \`.queue\`, \`.nowplaying\`
+*🎵 MUSIC*
+▢ .play
+▢ .skip
+▢ .queue
+▢ .nowplaying
 
-Use .help <command> for detailed information about a specific command`;
+╭━━━━━━━━━━━━━━━╮
+┃ Made with ❤️ by @sirtheprogrammer
+╰━━━━━━━━━━━━━━━╯`;
 
-            await sock.sendMessage(msg.key.remoteJid, { 
+            await sock.sendMessage(msg.key.remoteJid, {
                 image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
-                caption: menuText
+                caption: menuText,
+                mentions: ['sirtheprogrammer@s.whatsapp.net']
             });
         } catch (error) {
             console.error('Error in menu command:', error);
