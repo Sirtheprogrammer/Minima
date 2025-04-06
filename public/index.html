@@ -3,834 +3,292 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Bot Connection</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>WhatsApp Bot Control Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
     <style>
-        :root {
-            --primary: #25D366;
-            --primary-dark: #128C7E;
-            --secondary: #075E54;
-            --accent: #34B7F1;
-            --light: #f5f5f5;
-            --dark: #333;
-            --gray: #888;
-            --light-gray: #e0e0e0;
-            --border-radius: 12px;
-            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
+        .connected { color: #10B981; }
+        .disconnected { color: #EF4444; }
+        .connecting { color: #F59E0B; }
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Nunito', sans-serif;
-            background-color: #f9f9f9;
-            color: var(--dark);
-            line-height: 1.6;
-        }
-
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            text-align: center;
-            padding: 1.5rem;
-            font-size: 1.5rem;
-            font-weight: 700;
-            box-shadow: var(--box-shadow);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .container {
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .card {
-            background: white;
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--box-shadow);
-            transition: var(--transition);
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        h1 {
-            color: var(--secondary);
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-size: 1.8rem;
-        }
-
-        h2 {
-            color: var(--secondary);
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-
-        h3 {
-            color: var(--secondary);
-            margin-bottom: 0.8rem;
-            font-size: 1.1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .toggle-group {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            justify-content: center;
-        }
-
-        .toggle-group label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            padding: 0.8rem 1.2rem;
-            border-radius: var(--border-radius);
-            background: var(--light);
-            transition: var(--transition);
-            font-weight: 600;
-        }
-
-        .toggle-group label:hover {
-            background: var(--light-gray);
-        }
-
-        .toggle-group input[type="radio"] {
-            display: none;
-        }
-
-        .toggle-group input[type="radio"]:checked + span {
-            color: var(--primary);
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: var(--secondary);
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 0.8rem 1rem;
-            border: 2px solid var(--light-gray);
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.2);
-        }
-
-        button {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: var(--border-radius);
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            width: 100%;
-        }
-
-        button:hover {
-            background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            background: var(--light-gray);
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .pairing-code {
-            text-align: center;
-            margin: 1.5rem 0;
-            padding: 1.5rem;
-            background: var(--light);
-            border-radius: var(--border-radius);
-            display: none;
-        }
-
-        #codeText {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: 0.2rem;
-            color: var(--secondary);
-            background: white;
+        .terminal {
+            background-color: #1E293B;
+            color: #E5E7EB;
+            font-family: monospace;
             padding: 1rem;
-            border-radius: var(--border-radius);
-            display: inline-block;
-            box-shadow: var(--box-shadow);
+            border-radius: 0.5rem;
         }
-
-        #qrImage {
-            max-width: 100%;
-            height: auto;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-            margin: 0 auto;
-        }
-
-        .status-controls {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: var(--light);
-            border-radius: var(--border-radius);
-            border: 2px solid var(--light-gray);
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 60px;
-            height: 30px;
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 22px;
-            width: 22px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
-            background-color: var(--primary);
-        }
-
-        input:checked + .slider:before {
-            transform: translateX(30px);
-        }
-
-        .emoji-input {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .emoji-input input {
-            width: 80px;
-            text-align: center;
-            font-size: 1.2rem;
-        }
-
-        .status-info {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            background: white;
-            border-radius: var(--border-radius);
-            font-size: 0.9rem;
-            color: var(--dark);
-            border-left: 4px solid var(--primary);
-        }
-
-        .status-container {
-            margin: 1.5rem 0;
-        }
-
-        .success-message {
-            background: #e6ffed;
-            color: #22863a;
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 1rem;
-            display: none;
-            border-left: 4px solid #28a745;
-        }
-
-        .error-message {
-            background: #ffeef0;
-            color: #cb2431;
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            margin-bottom: 1rem;
-            display: none;
-            border-left: 4px solid #d73a49;
-        }
-
-        .instructions {
-            background: white;
-            padding: 1.5rem;
-            border-radius: var(--border-radius);
-            box-shadow: var(--box-shadow);
-        }
-
-        .instructions ol {
-            padding-left: 1.5rem;
-        }
-
-        .instructions li {
-            margin-bottom: 0.5rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            color: var(--gray);
-            font-size: 0.9rem;
-        }
-
-        /* Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease forwards;
-        }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            header {
-                font-size: 1.2rem;
-                padding: 1rem;
-            }
-            
-            .container {
-                padding: 0 1rem;
-            }
-            
-            .card {
-                padding: 1.5rem;
-            }
-            
-            .toggle-group {
-                flex-direction: column;
-                gap: 0.5rem;
-            }
-        }
-
-        /* Connection status indicator */
-        .connection-status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-        }
-
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--gray);
-        }
-
-        .status-indicator.connected {
-            background: var(--primary);
-            box-shadow: 0 0 8px var(--primary);
-        }
-
-        .status-indicator.connecting {
-            background: var(--accent);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        /* Tooltip */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            margin-left: 5px;
-        }
-
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            width: 200px;
-            background-color: var(--dark);
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 0.8rem;
-            font-weight: normal;
-        }
-
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Progress bar */
-        .progress-container {
-            width: 100%;
-            background-color: var(--light-gray);
-            border-radius: var(--border-radius);
-            margin: 1rem 0;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 8px;
-            border-radius: var(--border-radius);
-            background: linear-gradient(90deg, var(--primary), var(--accent));
-            width: 0%;
-            transition: width 0.5s ease;
-        }
+        .success { color: #10B981; }
+        .error { color: #EF4444; }
+        .info { color: #3B82F6; }
+        .warning { color: #F59E0B; }
     </style>
 </head>
-<body>
-    <header>
-        <i class="fas fa-robot"></i> 
-        <span>SIRTHEPROGRAMMER BOT CONNECT</span>
-        <i class="fas fa-heart"></i>
-    </header>
-
-    <div class="container">
-        <div class="card fade-in">
-            <h1><i class="fas fa-robot"></i> WhatsApp Bot Connection</h1>
-            
-            <div class="connection-status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">Disconnected</span>
-            </div>
-            
-            <div class="progress-container" id="progressContainer">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-
-            <div class="form-group">
-                <div class="toggle-group">
-                    <label>
-                        <input type="radio" name="method" value="qr" checked>
-                        <span><i class="fas fa-qrcode"></i> QR Code</span>
-                    </label>
-                    <label>
-                        <input type="radio" name="method" value="pairingCode">
-                        <span><i class="fas fa-mobile-alt"></i> Pairing Code</span>
-                    </label>
-                </div>
-                
-                <div id="numberInputContainer" style="display: none;">
-                    <label for="number">
-                        <i class="fas fa-phone-alt"></i> WhatsApp Number (with country code):
-                        <span class="tooltip">
-                            <i class="fas fa-info-circle"></i>
-                            <span class="tooltiptext">Include country code (e.g., +1 for US, +44 for UK)</span>
-                        </span>
-                    </label>
-                    <input type="text" id="number" placeholder="e.g., +1234567890">
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto p-4">
+        <header class="bg-white shadow rounded-lg p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">WhatsApp Bot Control Panel</h1>
+                <div class="flex items-center space-x-2">
+                    <span id="status-indicator" class="w-3 h-3 rounded-full bg-red-500"></span>
+                    <span id="status-text" class="text-sm font-medium disconnected">Disconnected</span>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <button id="generate">
-                    <i class="fas fa-plug"></i> Connect to WhatsApp
-                </button>
-            </div>
-            
-            <div class="pairing-code" id="pairingCode">
-                <h3 id="connectionMethodTitle">QR Code</h3>
-                <p id="connectionInstructions">Scan this QR code with your WhatsApp mobile app</p>
-                <span id="codeText"></span>
-                <img id="qrImage" alt="QR Code" style="display: none;">
-                <div id="countdown" style="margin-top: 1rem; font-weight: 600;"></div>
-            </div>
-        </div>
+        </header>
 
-        <div class="card fade-in" id="statusControls" style="display: none;">
-            <h2><i class="fas fa-cog"></i> Bot Settings</h2>
-            
-            <div class="status-controls">
-                <h3><i class="fas fa-eye"></i> Status Settings</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Connection Section -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Connection</h2>
                 
-                <div class="toggle-switch">
-                    <div>
-                        <label>Auto Status View/Like</label>
-                        <p class="small-text">Automatically view and react to status updates</p>
+                <div class="mb-6">
+                    <div class="flex space-x-2 mb-4">
+                        <button id="connect-qr" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                            Connect with QR
+                        </button>
+                        <button id="connect-pairing" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                            Connect with Pairing Code
+                        </button>
                     </div>
-                    <label class="switch">
-                        <input type="checkbox" id="statusToggle">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                
-                <div class="emoji-input">
-                    <div>
-                        <label>Reaction Emoji</label>
-                        <p class="small-text">Choose an emoji to react with (max 2 characters)</p>
+                    
+                    <div id="pairing-form" class="hidden mb-4">
+                        <div class="flex space-x-2">
+                            <input type="text" id="phone-number" placeholder="Phone Number (with country code)" 
+                                class="border rounded px-3 py-2 w-full" />
+                            <button id="generate-pairing" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                                Generate
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1">Format: +1234567890 (include country code)</p>
                     </div>
-                    <input type="text" id="emojiInput" maxlength="2" placeholder="👍">
-                    <button id="updateEmoji" style="width: auto; padding: 0.5rem 1rem;">
-                        <i class="fas fa-save"></i> Update
-                    </button>
                 </div>
                 
-                <div class="status-info" id="statusInfo">
-                    <p><strong>Current Status:</strong> Disabled ❌</p>
-                    <p><strong>Current Emoji:</strong> Not set</p>
+                <div id="connection-display" class="flex justify-center items-center border-2 border-dashed border-gray-300 rounded-lg p-4 h-64">
+                    <div id="qr-placeholder" class="text-center text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                        </svg>
+                        <p>QR code will appear here</p>
+                    </div>
+                    <div id="qr-code" class="hidden"></div>
+                    <div id="pairing-code" class="hidden text-center">
+                        <h3 class="text-xl font-bold mb-2">Pairing Code</h3>
+                        <div class="text-3xl font-mono tracking-widest bg-gray-100 p-4 rounded">----</div>
+                        <p class="mt-2 text-sm text-gray-600">
+                            Open WhatsApp on your phone > Settings > Linked Devices > Link a Device > Enter this code
+                        </p>
+                    </div>
                 </div>
             </div>
-            
-            <div class="form-group" style="margin-top: 1.5rem;">
-                <button id="disconnectBtn" style="background: linear-gradient(135deg, #ff4444, #cc0000);">
-                    <i class="fas fa-power-off"></i> Disconnect Bot
-                </button>
+
+            <!-- Features & Commands Section -->
+            <div class="bg-white shadow rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Features & Commands</h2>
+                
+                <div class="mb-6">
+                    <h3 class="font-medium text-gray-700 mb-2">Status Feature</h3>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-3">
+                        <span>Auto-view & like statuses</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="status-toggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <input type="text" id="status-emoji" placeholder="Reaction Emoji" maxlength="2" 
+                            class="border rounded px-3 py-2 w-16 text-center text-xl" value="👍">
+                        <button id="set-emoji" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                            Set Emoji
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-medium text-gray-700 mb-2">Quick Commands</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="statusinfo">
+                            Status Info
+                        </button>
+                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="statusdebug">
+                            Toggle Debug
+                        </button>
+                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="checkstatus">
+                            Check Statuses
+                        </button>
+                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="help">
+                            Help
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div class="status-container">
-            <div class="success-message" id="successMessage"></div>
-            <div class="error-message" id="errorMessage"></div>
-        </div>
-        
-        <div class="instructions fade-in">
-            <h3><i class="fas fa-info-circle"></i> Connection Guide</h3>
-            <ol>
-                <li><strong>Select connection method</strong> - QR code or pairing code</li>
-                <li><strong>Click "Connect"</strong> - Generate your connection code</li>
-                <li><strong>Scan/Enter code</strong> - Use WhatsApp on your phone</li>
-                <li><strong>Wait for confirmation</strong> - Connection takes a few seconds</li>
-                <li><strong>Configure settings</strong> - Customize bot behavior after connection</li>
-            </ol>
-            
-            <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f7ff; border-radius: var(--border-radius);">
-                <h4><i class="fas fa-lightbulb"></i> Pro Tip</h4>
-                <p>For best results, keep this page open and your phone nearby during connection. The QR code refreshes every 20 seconds for security.</p>
+
+        <!-- Logs Section -->
+        <div class="bg-white shadow rounded-lg p-6 mt-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Activity Logs</h2>
+                <button id="clear-logs" class="text-sm text-gray-500 hover:text-gray-700">Clear</button>
+            </div>
+            <div class="terminal log-container" id="log-container">
+                <div class="log-entry info">[System] WhatsApp Bot Control Panel loaded.</div>
             </div>
         </div>
     </div>
 
-    <footer>
-        © 2025 SirTheProgrammer Bot Connect | All rights reserved | <a href="#" style="color: var(--accent);">Privacy Policy</a> | <a href="#" style="color: var(--accent);">Terms of Service</a>
-    </footer>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const socket = io();
-            const generateBtn = document.getElementById('generate');
-            const pairingCodeDiv = document.getElementById('pairingCode');
-            const codeText = document.getElementById('codeText');
-            const qrImage = document.getElementById('qrImage');
-            const successMessageDiv = document.getElementById('successMessage');
-            const errorMessageDiv = document.getElementById('errorMessage');
-            const numberInput = document.getElementById('number');
-            const numberInputContainer = document.getElementById('numberInputContainer');
-            const methodRadios = document.querySelectorAll('input[name="method"]');
-            const statusControls = document.getElementById('statusControls');
-            const statusToggle = document.getElementById('statusToggle');
-            const emojiInput = document.getElementById('emojiInput');
-            const updateEmojiBtn = document.getElementById('updateEmoji');
-            const statusInfo = document.getElementById('statusInfo');
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('statusText');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const connectionMethodTitle = document.getElementById('connectionMethodTitle');
-            const connectionInstructions = document.getElementById('connectionInstructions');
-            const countdown = document.getElementById('countdown');
-            const disconnectBtn = document.getElementById('disconnectBtn');
-
-            // Initial setup
-            numberInputContainer.style.display = 'none';
-            errorMessageDiv.style.display = 'none';
-            successMessageDiv.style.display = 'none';
-            pairingCodeDiv.style.display = 'none';
-            updateConnectionStatus('disconnected');
-
-            // Toggle number input visibility
-            methodRadios.forEach(radio => {
-                radio.addEventListener('change', () => {
-                    numberInputContainer.style.display = radio.value === 'pairingCode' ? 'block' : 'none';
-                    clearMessages();
-                    pairingCodeDiv.style.display = 'none';
-                });
-            });
-
-            // Generate button click
-            generateBtn.addEventListener('click', function() {
-                const method = document.querySelector('input[name="method"]:checked').value;
-                const phoneNumber = method === 'pairingCode' ? numberInput.value.trim() : null;
-
-                if (method === 'pairingCode' && !validatePhoneNumber(phoneNumber)) {
-                    return;
-                }
-
-                clearMessages();
-                setLoadingState(true);
-                updateConnectionStatus('connecting');
-                progressContainer.style.display = 'block';
-                animateProgressBar();
-
-                socket.emit('generatePairing', { method, phoneNumber });
-                startTimeout();
-            });
-
-            // Disconnect button
-            disconnectBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to disconnect the bot?')) {
-                    socket.emit('disconnect');
-                    updateConnectionStatus('disconnected');
-                    statusControls.style.display = 'none';
-                    showSuccess('Bot has been disconnected successfully');
-                    setTimeout(() => {
-                        successMessageDiv.style.display = 'none';
-                    }, 3000);
-                }
-            });
-
-            // Status toggle
-            statusToggle.addEventListener('change', function() {
-                socket.emit('toggleStatusFeature', this.checked);
-            });
-
-            // Emoji update
-            updateEmojiBtn.addEventListener('click', function() {
-                const emoji = emojiInput.value.trim();
-                if (emoji && emoji.length <= 2) {
-                    socket.emit('setStatusEmoji', emoji);
-                } else {
-                    showError('Please enter a valid emoji (max 2 characters)');
-                }
-            });
-
-            // Socket event handlers
-            socket.on('qr', (qrUrl) => {
-                connectionMethodTitle.textContent = 'QR Code';
-                connectionInstructions.textContent = 'Scan this QR code with your WhatsApp mobile app:';
-                qrImage.src = qrUrl;
-                qrImage.style.display = 'block';
-                codeText.style.display = 'none';
-                pairingCodeDiv.style.display = 'block';
-                resetButton();
-                startCountdown(20);
-            });
-
-            socket.on('pairingCode', (pairingCode) => {
-                connectionMethodTitle.textContent = 'Pairing Code';
-                connectionInstructions.textContent = 'Enter this code in your WhatsApp mobile app:';
-                codeText.textContent = pairingCode;
-                qrImage.style.display = 'none';
-                codeText.style.display = 'block';
-                pairingCodeDiv.style.display = 'block';
-                resetButton();
-                startCountdown(20);
-            });
-
-            socket.on('connected', (data) => {
-                showSuccess(`<i class="fas fa-check-circle"></i> ${data.message}`);
-                pairingCodeDiv.style.display = 'none';
-                statusControls.style.display = 'block';
-                resetButton();
-                updateConnectionStatus('connected');
-                progressContainer.style.display = 'none';
-            });
-
-            socket.on('error', (msg) => {
-                showError(`<i class="fas fa-exclamation-circle"></i> ${msg}`);
-                resetButton();
-                updateConnectionStatus('error');
-                progressContainer.style.display = 'none';
-            });
-
-            socket.on('statusSettings', (settings) => {
-                statusToggle.checked = settings.enabled;
-                emojiInput.value = settings.emoji || '👍';
-                updateStatusInfo(settings);
-            });
-
-            socket.on('statusFeatureUpdate', (data) => {
-                statusToggle.checked = data.enabled;
-                updateStatusInfo({ enabled: data.enabled, emoji: emojiInput.value });
-            });
-
-            socket.on('statusEmojiUpdate', (data) => {
-                emojiInput.value = data.emoji;
-                updateStatusInfo({ enabled: statusToggle.checked, emoji: data.emoji });
-                showSuccess(`<i class="fas fa-check-circle"></i> Emoji updated to ${data.emoji}`);
-            });
-
-            // Helper functions
-            function validatePhoneNumber(phoneNumber) {
-                if (!phoneNumber) {
-                    showError('Please enter a phone number with country code');
-                    return false;
-                }
-                if (!/^\+\d{8,15}$/.test(phoneNumber)) {
-                    showError('Please enter a valid number with country code (e.g., +1234567890)');
-                    return false;
-                }
-                return true;
+        // Connect to Socket.IO
+        const socket = io();
+        const logContainer = document.getElementById('log-container');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        
+        // Log management
+        function addLog(message, type = 'info') {
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = message;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        document.getElementById('clear-logs').addEventListener('click', () => {
+            logContainer.innerHTML = '';
+            addLog('[System] Logs cleared.', 'info');
+        });
+        
+        // Connection management
+        document.getElementById('connect-qr').addEventListener('click', () => {
+            socket.emit('generatePairing', { method: 'qr' });
+            setConnectionStatus('connecting');
+            addLog('[System] Requesting QR code connection...', 'info');
+            
+            // Show QR section
+            document.getElementById('pairing-form').classList.add('hidden');
+            document.getElementById('qr-placeholder').classList.remove('hidden');
+            document.getElementById('qr-code').classList.add('hidden');
+            document.getElementById('pairing-code').classList.add('hidden');
+        });
+        
+        document.getElementById('connect-pairing').addEventListener('click', () => {
+            document.getElementById('pairing-form').classList.toggle('hidden');
+        });
+        
+        document.getElementById('generate-pairing').addEventListener('click', () => {
+            const phoneNumber = document.getElementById('phone-number').value.trim();
+            if (!phoneNumber) {
+                addLog('[Error] Please enter a phone number with country code.', 'error');
+                return;
             }
-
-            function setLoadingState(isLoading) {
-                generateBtn.innerHTML = isLoading ? 
-                    '<i class="fas fa-spinner fa-spin"></i> Connecting...' : 
-                    '<i class="fas fa-plug"></i> Connect to WhatsApp';
-                generateBtn.disabled = isLoading;
-            }
-
-            function startTimeout() {
-                setTimeout(() => {
-                    if (generateBtn.disabled) {
-                        resetButton();
-                        showError('Connection timeout. Please try again.');
-                        updateConnectionStatus('error');
-                        progressContainer.style.display = 'none';
-                    }
-                }, 30000);
-            }
-
-            function resetButton() {
-                setLoadingState(false);
-            }
-
-            function showSuccess(message) {
-                successMessageDiv.innerHTML = message;
-                successMessageDiv.style.display = 'block';
-                errorMessageDiv.style.display = 'none';
-                
-                setTimeout(() => {
-                    successMessageDiv.style.display = 'none';
-                }, 5000);
-            }
-
-            function showError(message) {
-                errorMessageDiv.innerHTML = message;
-                errorMessageDiv.style.display = 'block';
-                successMessageDiv.style.display = 'none';
-                
-                setTimeout(() => {
-                    errorMessageDiv.style.display = 'none';
-                }, 5000);
-            }
-
-            function clearMessages() {
-                pairingCodeDiv.style.display = 'none';
-                successMessageDiv.style.display = 'none';
-                errorMessageDiv.style.display = 'none';
-            }
-
-            function updateStatusInfo(settings) {
-                statusInfo.innerHTML = `
-                    <p><strong>Current Status:</strong> ${settings.enabled ? 'Enabled ✅' : 'Disabled ❌'}</p>
-                    <p><strong>Current Emoji:</strong> ${settings.emoji || 'Not set'}</p>
-                `;
-            }
-
-            function updateConnectionStatus(status) {
-                statusIndicator.className = 'status-indicator';
-                switch(status) {
-                    case 'connected':
-                        statusIndicator.classList.add('connected');
-                        statusText.textContent = 'Connected';
-                        break;
-                    case 'connecting':
-                        statusIndicator.classList.add('connecting');
-                        statusText.textContent = 'Connecting...';
-                        break;
-                    case 'error':
-                        statusText.textContent = 'Connection Error';
-                        break;
-                    default:
-                        statusText.textContent = 'Disconnected';
-                }
-            }
-
-            function animateProgressBar() {
-                let width = 0;
-                const interval = setInterval(() => {
-                    if (width >= 100) {
-                        clearInterval(interval);
-                        progressBar.style.width = '0%';
-                    } else {
-                        width += 2;
-                        progressBar.style.width = width + '%';
-                    }
-                }, 300);
-            }
-
-            function startCountdown(seconds) {
-                let counter = seconds;
-                countdown.textContent = `This code expires in ${counter} seconds`;
-                
-                const interval = setInterval(() => {
-                    counter--;
-                    countdown.textContent = `This code expires in ${counter} seconds`;
-                    
-                    if (counter <= 0) {
-                        clearInterval(interval);
-                        countdown.textContent = 'Code expired. Please generate a new one.';
-                        pairingCodeDiv.style.display = 'none';
-                    }
-                }, 1000);
+            
+            socket.emit('generatePairing', { method: 'pairingCode', phoneNumber });
+            setConnectionStatus('connecting');
+            addLog(`[System] Requesting pairing code for ${phoneNumber}...`, 'info');
+            
+            // Show pairing section
+            document.getElementById('qr-placeholder').classList.add('hidden');
+            document.getElementById('qr-code').classList.add('hidden');
+            document.getElementById('pairing-code').classList.remove('hidden');
+        });
+        
+        // Status feature management
+        document.getElementById('status-toggle').addEventListener('change', function() {
+            socket.emit('toggleStatusFeature', this.checked);
+            addLog(`[System] Auto status feature ${this.checked ? 'enabled' : 'disabled'}.`, 'info');
+        });
+        
+        document.getElementById('set-emoji').addEventListener('click', () => {
+            const emoji = document.getElementById('status-emoji').value;
+            if (emoji) {
+                socket.emit('setStatusEmoji', emoji);
+                addLog(`[System] Status reaction emoji set to ${emoji}`, 'info');
             }
         });
+        
+        // Command buttons
+        document.querySelectorAll('.command-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.getAttribute('data-command');
+                socket.emit('sendCommand', command);
+                addLog(`[Command] Executed: ${command}`, 'info');
+            });
+        });
+        
+        // Socket.IO event listeners
+        socket.on('connect', () => {
+            addLog('[Socket] Connected to server.', 'success');
+        });
+        
+        socket.on('disconnect', () => {
+            setConnectionStatus('disconnected');
+            addLog('[Socket] Disconnected from server.', 'error');
+        });
+        
+        socket.on('qr', (qrDataUrl) => {
+            document.getElementById('qr-placeholder').classList.add('hidden');
+            document.getElementById('pairing-code').classList.add('hidden');
+            
+            const qrDiv = document.getElementById('qr-code');
+            qrDiv.classList.remove('hidden');
+            qrDiv.innerHTML = `<img src="${qrDataUrl}" alt="QR Code" class="max-w-full h-auto">`;
+            addLog('[QR] QR code received and displayed.', 'info');
+        });
+        
+        socket.on('pairingCode', (code) => {
+            document.getElementById('pairing-code').querySelector('div').textContent = code;
+            addLog(`[Pairing] Code generated: ${code}`, 'success');
+        });
+        
+        socket.on('connected', (data) => {
+            setConnectionStatus('connected');
+            addLog('[WhatsApp] ' + data.message, 'success');
+        });
+        
+        socket.on('error', (message) => {
+            addLog('[Error] ' + message, 'error');
+        });
+        
+        socket.on('message', (data) => {
+            addLog('[WhatsApp] ' + data.text);
+        });
+        
+        socket.on('statusFeatureUpdate', (data) => {
+            document.getElementById('status-toggle').checked = data.enabled;
+            addLog(`[Status] Auto status feature ${data.enabled ? 'enabled' : 'disabled'}.`, 'info');
+        });
+        
+        socket.on('statusEmojiUpdate', (data) => {
+            document.getElementById('status-emoji').value = data.emoji;
+            addLog(`[Status] Reaction emoji set to ${data.emoji}`, 'info');
+        });
+        
+        socket.on('statusSettings', (data) => {
+            document.getElementById('status-toggle').checked = data.enabled;
+            document.getElementById('status-emoji').value = data.emoji;
+            addLog(`[Status] Loaded settings - Enabled: ${data.enabled}, Emoji: ${data.emoji}`, 'info');
+        });
+        
+        // Utility functions
+        function setConnectionStatus(status) {
+            statusText.className = status;
+            switch(status) {
+                case 'connected':
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500';
+                    statusText.textContent = 'Connected';
+                    break;
+                case 'connecting':
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-500';
+                    statusText.textContent = 'Connecting...';
+                    break;
+                case 'disconnected':
+                default:
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-red-500';
+                    statusText.textContent = 'Disconnected';
+                    break;
+            }
+        }
     </script>
 </body>
 </html>
