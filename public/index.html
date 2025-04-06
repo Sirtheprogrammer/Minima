@@ -195,12 +195,45 @@
                                     <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                                 </label>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <input type="text" id="status-emoji" placeholder="😊" maxlength="2" 
-                                    class="border border-gray-300 rounded-lg px-3 py-2 w-16 text-center text-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent" value="👍">
-                                <button id="set-emoji" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
-                                    Set Reaction
-                                </button>
+                            <div class="space-y-4">
+                                <div class="flex items-center space-x-2">
+                                    <input type="text" id="status-emoji" placeholder="😊" maxlength="2" 
+                                        class="border border-gray-300 rounded-lg px-3 py-2 w-16 text-center text-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent" value="👍">
+                                    <button id="set-emoji" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                                        Set Reaction
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-white p-2 rounded-lg border border-gray-200">
+                                        <div class="text-xs text-gray-500">Rate Limit</div>
+                                        <div class="text-sm font-medium" id="rate-limit">50/hour</div>
+                                    </div>
+                                    <div class="bg-white p-2 rounded-lg border border-gray-200">
+                                        <div class="text-xs text-gray-500">Cooldown</div>
+                                        <div class="text-sm font-medium" id="cooldown">2s</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-xs text-gray-500">Status Types</div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="status-type-text" class="rounded text-purple-600" checked>
+                                            <span class="text-sm">Text</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="status-type-image" class="rounded text-purple-600" checked>
+                                            <span class="text-sm">Image</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="status-type-video" class="rounded text-purple-600" checked>
+                                            <span class="text-sm">Video</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" id="status-type-audio" class="rounded text-purple-600" checked>
+                                            <span class="text-sm">Audio</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -222,6 +255,12 @@
                                 <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="help">
                                     <i class="fas fa-question-circle mr-1 text-yellow-500"></i> Help
                                 </button>
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="antidelete">
+                                    <i class="fas fa-trash-restore mr-1 text-red-500"></i> Anti-Delete
+                                </button>
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="antidelete status">
+                                    <i class="fas fa-info-circle mr-1 text-blue-500"></i> Anti-Delete Status
+                                </button>
                             </div>
                         </div>
                         
@@ -234,10 +273,12 @@
                                 <div class="bg-white p-3 rounded-lg border border-gray-200">
                                     <div class="text-xs text-gray-500">Status Viewed</div>
                                     <div class="text-xl font-bold" id="stats-viewed">0</div>
+                                    <div class="text-xs text-gray-500 mt-1" id="stats-viewed-types"></div>
                                 </div>
                                 <div class="bg-white p-3 rounded-lg border border-gray-200">
                                     <div class="text-xs text-gray-500">Reactions Sent</div>
                                     <div class="text-xl font-bold" id="stats-reactions">0</div>
+                                    <div class="text-xs text-gray-500 mt-1" id="stats-reactions-hour"></div>
                                 </div>
                             </div>
                         </div>
@@ -312,258 +353,192 @@
     </div>
 
     <script>
-        // Connect to Socket.IO
         const socket = io();
-        const logContainer = document.getElementById('log-container');
-        const statusIndicator = document.getElementById('status-indicator');
-        const statusText = document.getElementById('status-text');
-        
-        // Initialize stats
-        let stats = {
-            viewed: 0,
-            reactions: 0
-        };
+        let isConnected = false;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
 
-        // Log management
-        function addLog(message, type = 'info') {
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry log-${type}`;
-            
-            // Add timestamp
-            const now = new Date();
-            const timestamp = now.toLocaleTimeString();
-            
-            // Create log message with icon based on type
-            let icon = '';
-            switch(type) {
-                case 'success': icon = '<i class="fas fa-check-circle mr-2"></i>'; break;
-                case 'error': icon = '<i class="fas fa-times-circle mr-2"></i>'; break;
-                case 'warning': icon = '<i class="fas fa-exclamation-triangle mr-2"></i>'; break;
-                default: icon = '<i class="fas fa-info-circle mr-2"></i>';
-            }
-            
-            logEntry.innerHTML = `<span class="text-gray-400">[${timestamp}]</span> ${icon} ${message}`;
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-        
-        document.getElementById('clear-logs').addEventListener('click', () => {
-            logContainer.innerHTML = '';
-            addLog('[System] Logs cleared.', 'info');
-        });
-        
-        document.getElementById('export-logs').addEventListener('click', () => {
-            const logs = logContainer.innerText;
-            const blob = new Blob([logs], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `minima-bot-logs-${new Date().toISOString().slice(0,10)}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            addLog('[System] Logs exported.', 'success');
-        });
-        
-        // Connection management
-        document.getElementById('connect-qr').addEventListener('click', () => {
-            socket.emit('generatePairing', { method: 'qr' });
-            setConnectionStatus('connecting');
-            addLog('[Connection] Requesting QR code connection...', 'info');
-            
-            // Show QR section
-            document.getElementById('pairing-form').classList.add('hidden');
-            document.getElementById('qr-placeholder').classList.remove('hidden');
-            document.getElementById('qr-code').classList.add('hidden');
-            document.getElementById('pairing-code').classList.add('hidden');
-        });
-        
-        document.getElementById('connect-pairing').addEventListener('click', () => {
-            document.getElementById('pairing-form').classList.toggle('hidden');
-            addLog('[Connection] Pairing code method selected', 'info');
-        });
-        
-        document.getElementById('generate-pairing').addEventListener('click', () => {
-            const phoneNumber = document.getElementById('phone-number').value.trim();
-            if (!phoneNumber) {
-                addLog('[Error] Please enter a phone number with country code.', 'error');
-                return;
-            }
-            
-            if (!phoneNumber.startsWith('+')) {
-                addLog('[Error] Phone number must start with country code (e.g. +1, +44)', 'error');
-                return;
-            }
-            
-            socket.emit('generatePairing', { method: 'pairingCode', phoneNumber });
-            setConnectionStatus('connecting');
-            addLog(`[Connection] Requesting pairing code for ${phoneNumber}...`, 'info');
-            
-            // Show pairing section
-            document.getElementById('qr-placeholder').classList.add('hidden');
-            document.getElementById('qr-code').classList.add('hidden');
-            document.getElementById('pairing-code').classList.remove('hidden');
-        });
-        
-        // Quick connect button
-        document.getElementById('quick-connect').addEventListener('click', () => {
-            socket.emit('generatePairing', { method: 'qr' });
-            setConnectionStatus('connecting');
-            addLog('[Connection] Quick connect initiated with QR code...', 'info');
-            
-            // Show QR section
-            document.getElementById('pairing-form').classList.add('hidden');
-            document.getElementById('qr-placeholder').classList.remove('hidden');
-            document.getElementById('qr-code').classList.add('hidden');
-            document.getElementById('pairing-code').classList.add('hidden');
-            
-            // Smooth scroll to connection section
-            document.querySelector('[href="#connection-display"]').scrollIntoView({
-                behavior: 'smooth'
-            });
-        });
-        
-        // Status feature management
-        document.getElementById('status-toggle').addEventListener('change', function() {
-            socket.emit('toggleStatusFeature', this.checked);
-            addLog(`[Feature] Auto status reactions ${this.checked ? 'enabled' : 'disabled'}.`, this.checked ? 'success' : 'warning');
-        });
-        
-        document.getElementById('set-emoji').addEventListener('click', () => {
-            const emoji = document.getElementById('status-emoji').value.trim();
-            if (emoji) {
-                socket.emit('setStatusEmoji', emoji);
-                addLog(`[Feature] Status reaction emoji set to ${emoji}`, 'success');
-            } else {
-                addLog('[Error] Please enter an emoji', 'error');
-            }
-        });
-        
-        // Command buttons
-        document.querySelectorAll('.command-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const command = btn.getAttribute('data-command');
-                socket.emit('sendCommand', command);
-                addLog(`[Command] Executed: ${command}`, 'info');
-                
-                // Add small animation to button
-                btn.classList.add('animate-pulse');
-                setTimeout(() => {
-                    btn.classList.remove('animate-pulse');
-                }, 300);
-            });
-        });
-        
-        // Socket.IO event listeners
+        // Connection status handling
         socket.on('connect', () => {
-            addLog('[System] Connected to server.', 'success');
+            console.log('Connected to server');
+            reconnectAttempts = 0;
+            updateConnectionStatus('connected');
         });
-        
+
         socket.on('disconnect', () => {
-            setConnectionStatus('disconnected');
-            addLog('[System] Disconnected from server.', 'error');
+            console.log('Disconnected from server');
+            updateConnectionStatus('disconnected');
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                setTimeout(() => {
+                    console.log(`Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+                    socket.connect();
+                }, 5000);
+            }
         });
-        
-        socket.on('qr', (qrDataUrl) => {
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            showNotification(error, 'error');
+        });
+
+        // WhatsApp connection status
+        socket.on('status', (data) => {
+            updateConnectionStatus(data.status);
+        });
+
+        socket.on('qr', (qrUrl) => {
+            document.getElementById('qr-code').classList.remove('hidden');
             document.getElementById('qr-placeholder').classList.add('hidden');
             document.getElementById('pairing-code').classList.add('hidden');
-            
-            const qrDiv = document.getElementById('qr-code');
-            qrDiv.classList.remove('hidden');
-            qrDiv.querySelector('img').src = qrDataUrl;
-            addLog('[Connection] QR code received and displayed.', 'success');
+            document.getElementById('qr-code').querySelector('img').src = qrUrl;
         });
-        
+
         socket.on('pairingCode', (code) => {
-            document.getElementById('pairing-code').querySelector('div').textContent = code;
-            addLog(`[Connection] Pairing code generated: ${code}`, 'success');
+            document.getElementById('pairing-code').classList.remove('hidden');
+            document.getElementById('qr-placeholder').classList.add('hidden');
+            document.getElementById('qr-code').classList.add('hidden');
+            document.getElementById('pairing-code').querySelector('.text-4xl').textContent = code;
         });
-        
+
         socket.on('connected', (data) => {
-            setConnectionStatus('connected');
-            addLog('[Connection] ' + data.message, 'success');
-            
-            // Update UI to show connected state
-            document.getElementById('connect-qr').classList.remove('bg-purple-600', 'hover:bg-purple-700');
-            document.getElementById('connect-qr').classList.add('bg-green-500', 'hover:bg-green-600');
-            document.getElementById('connect-qr').innerHTML = '<i class="fas fa-check mr-2"></i> Connected';
+            showNotification(data.message, 'success');
+            document.getElementById('connection-display').classList.add('hidden');
         });
-        
-        socket.on('error', (message) => {
-            addLog('[Error] ' + message, 'error');
-        });
-        
+
         socket.on('message', (data) => {
-            addLog('[Bot] ' + data.text, 'info');
+            appendLog(data.text);
         });
-        
+
+        // Status feature updates
         socket.on('statusFeatureUpdate', (data) => {
             document.getElementById('status-toggle').checked = data.enabled;
-            addLog(`[Feature] Auto status reactions ${data.enabled ? 'enabled' : 'disabled'}.`, 
-                  data.enabled ? 'success' : 'warning');
+            showNotification(`Status feature ${data.enabled ? 'enabled' : 'disabled'}`, 'info');
         });
-        
+
         socket.on('statusEmojiUpdate', (data) => {
             document.getElementById('status-emoji').value = data.emoji;
-            addLog(`[Feature] Reaction emoji set to ${data.emoji}`, 'success');
+            showNotification(`Status emoji updated to ${data.emoji}`, 'info');
         });
-        
-        socket.on('statusSettings', (data) => {
-            document.getElementById('status-toggle').checked = data.enabled;
-            document.getElementById('status-emoji').value = data.emoji;
-            addLog(`[Feature] Loaded settings - Enabled: ${data.enabled}, Emoji: ${data.emoji}`, 'info');
+
+        socket.on('statusUpdate', (data) => {
+            if (data.type === 'reaction') {
+                const viewedCount = parseInt(document.getElementById('stats-viewed').textContent) + 1;
+                document.getElementById('stats-viewed').textContent = viewedCount;
+                
+                // Update type stats
+                const typeStats = document.getElementById('stats-viewed-types');
+                const currentTypes = typeStats.textContent.split(', ');
+                if (!currentTypes.includes(data.statusType)) {
+                    currentTypes.push(data.statusType);
+                    typeStats.textContent = currentTypes.join(', ');
+                }
+                
+                // Update reactions per hour
+                const reactionsCount = parseInt(document.getElementById('stats-reactions').textContent) + 1;
+                document.getElementById('stats-reactions').textContent = reactionsCount;
+                document.getElementById('stats-reactions-hour').textContent = 
+                    `${reactionsCount}/50 this hour`;
+            }
         });
-        
-        socket.on('statusViewed', () => {
-            stats.viewed++;
-            document.getElementById('stats-viewed').textContent = stats.viewed;
+
+        // Status type toggles
+        document.querySelectorAll('input[id^="status-type-"]').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                const type = e.target.id.replace('status-type-', '');
+                socket.emit('toggleStatusType', { type, enabled: e.target.checked });
+            });
         });
-        
-        socket.on('reactionSent', () => {
-            stats.reactions++;
-            document.getElementById('stats-reactions').textContent = stats.reactions;
-        });
-        
-        // Utility functions
-        function setConnectionStatus(status) {
-            statusText.className = `status-${status}`;
-            switch(status) {
+
+        // Helper functions
+        function updateConnectionStatus(status) {
+            const indicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            
+            indicator.className = 'w-3 h-3 rounded-full';
+            statusText.className = 'text-sm font-medium';
+            
+            switch (status) {
                 case 'connected':
-                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
+                    indicator.classList.add('bg-green-500');
+                    statusText.classList.add('status-connected');
                     statusText.textContent = 'Connected';
                     break;
                 case 'connecting':
-                    statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-ping';
+                    indicator.classList.add('bg-yellow-500');
+                    statusText.classList.add('status-connecting');
                     statusText.textContent = 'Connecting...';
                     break;
                 case 'disconnected':
-                default:
-                    statusIndicator.className = 'w-3 h-3 rounded-full bg-red-500';
+                    indicator.classList.add('bg-red-500');
+                    statusText.classList.add('status-disconnected');
                     statusText.textContent = 'Disconnected';
                     break;
             }
         }
-        
-        // Initialize tooltips
-        document.querySelectorAll('[data-tooltip]').forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                const tooltip = document.createElement('div');
-                tooltip.className = 'absolute z-10 bg-black text-white text-xs rounded py-1 px-2';
-                tooltip.textContent = el.getAttribute('data-tooltip');
-                document.body.appendChild(tooltip);
-                
-                const rect = el.getBoundingClientRect();
-                tooltip.style.top = `${rect.top - 30}px`;
-                tooltip.style.left = `${rect.left + rect.width / 2 - tooltip.offsetWidth / 2}px`;
-                
-                el._tooltip = tooltip;
-            });
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
+                type === 'error' ? 'bg-red-500' :
+                type === 'success' ? 'bg-green-500' :
+                type === 'warning' ? 'bg-yellow-500' :
+                'bg-blue-500'
+            } text-white`;
+            notification.textContent = message;
             
-            el.addEventListener('mouseleave', () => {
-                if (el._tooltip) {
-                    document.body.removeChild(el._tooltip);
-                    delete el._tooltip;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
+        }
+
+        function appendLog(message) {
+            const logContainer = document.querySelector('.log-container');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'py-1';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Event listeners
+        document.getElementById('connect-qr').addEventListener('click', () => {
+            socket.emit('generatePairing', { method: 'qr' });
+            document.getElementById('pairing-form').classList.add('hidden');
+        });
+
+        document.getElementById('connect-pairing').addEventListener('click', () => {
+            document.getElementById('pairing-form').classList.remove('hidden');
+        });
+
+        document.getElementById('generate-pairing').addEventListener('click', () => {
+            const phoneNumber = document.getElementById('phone-number').value.trim();
+            if (!phoneNumber) {
+                showNotification('Please enter a phone number', 'error');
+                return;
+            }
+            socket.emit('generatePairing', { method: 'pairingCode', phoneNumber });
+        });
+
+        document.getElementById('status-toggle').addEventListener('change', (e) => {
+            socket.emit('toggleStatusFeature', e.target.checked);
+        });
+
+        document.getElementById('set-emoji').addEventListener('click', () => {
+            const emoji = document.getElementById('status-emoji').value.trim();
+            if (emoji) {
+                socket.emit('setStatusEmoji', emoji);
+            }
+        });
+
+        // Command buttons
+        document.querySelectorAll('.command-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const command = button.dataset.command;
+                if (command) {
+                    socket.emit('sendCommand', command);
                 }
             });
         });
