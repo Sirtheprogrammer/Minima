@@ -3,559 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minima Bot v0.0.1 - WhatsApp Control Panel</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <title>Minima Bot v0.0.1 - WhatsApp Automation Control Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root {
-            --primary: #6d28d9;
-            --primary-light: #8b5cf6;
-            --secondary: #10b981;
-            --accent: #f59e0b;
-            --dark: #1f2937;
-            --light: #f9fafb;
-        }
-        
         body {
-            background-color: #f3f4f6;
-            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
         }
-        
-        .gradient-header {
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
-        
-        .status-connected { color: var(--secondary); }
-        .status-disconnected { color: #ef4444; }
-        .status-connecting { color: var(--accent); }
-        
-        .log-container {
-            max-height: 300px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: var(--primary-light) #f1f1f1;
-        }
-        
-        .log-container::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        .log-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+        .panel {
+            background: #2d2d2d;
             border-radius: 10px;
-        }
-        
-        .log-container::-webkit-scrollbar-thumb {
-            background-color: var(--primary-light);
-            border-radius: 10px;
-        }
-        
-        .terminal {
-            background-color: var(--dark);
-            color: #e5e7eb;
-            font-family: 'Fira Code', monospace;
-            padding: 1rem;
-            border-radius: 0.5rem;
-        }
-        
-        .log-success { color: var(--secondary); }
-        .log-error { color: #ef4444; }
-        .log-info { color: #3b82f6; }
-        .log-warning { color: var(--accent); }
-        
-        .command-btn {
-            transition: all 0.2s ease;
-        }
-        
-        .command-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        
-        .qr-container {
-            transition: all 0.3s ease;
-        }
-        
-        .floating-action {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
-        
-        .footer {
-            background: linear-gradient(135deg, var(--dark), #111827);
-        }
-
-        .system-info {
-            background: #2a2a2a;
-            padding: 15px;
-            border-radius: 8px;
+            padding: 20px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-
-        .system-info h3 {
-            margin-top: 0;
-            color: #00ff00;
-        }
-
-        #systemStats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        .connection-methods {
+            display: flex;
             gap: 10px;
+            margin: 20px 0;
         }
-
-        .stat-item {
-            background: #333;
+        .connection-methods button {
+            background: #8b5cf6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .connection-methods button:hover {
+            background: #7c3aed;
+        }
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            background: #3d3d3d;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .pairing-container {
+            display: none;
+            margin: 20px 0;
+        }
+        .pairing-container input {
+            background: #3d3d3d;
+            border: 1px solid #4d4d4d;
+            color: white;
             padding: 10px;
-            border-radius: 4px;
+            border-radius: 5px;
+            margin-right: 10px;
         }
-
-        .stat-label {
-            color: #888;
-            font-size: 0.9em;
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            text-align: center;
         }
-
-        .stat-value {
-            color: #fff;
-            font-weight: bold;
-        }
-
-        .settings {
-            background: #2a2a2a;
+        .logs {
+            background: #1a1a1a;
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
         }
-
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #8b5cf6;
+        }
+        .system-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .info-card {
+            background: #3d3d3d;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .info-card h3 {
+            color: #8b5cf6;
+            margin-bottom: 10px;
+        }
+        .settings-panel {
+            background: #3d3d3d;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
         .setting-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #4d4d4d;
         }
-
-        .setting-item label {
-            color: #fff;
-        }
-
-        .setting-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+        .setting-item:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="gradient-header text-white shadow-lg">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="bg-white p-2 rounded-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="text-2xl font-bold">Minima Bot <span class="text-purple-200">v0.0.1</span></h1>
-                        <p class="text-sm text-purple-100">WhatsApp Automation Control Panel</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
-                        <span id="status-indicator" class="w-3 h-3 rounded-full bg-red-500"></span>
-                        <span id="status-text" class="text-sm font-medium status-disconnected">Disconnected</span>
-                    </div>
-                    <button class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition">
-                        <i class="fas fa-cog"></i>
-                    </button>
+<body>
+    <div class="container">
+        <header class="flex items-center justify-between mb-8">
+            <div class="flex items-center">
+                <img src="https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp" alt="Bot Logo" class="w-12 h-12 rounded-full mr-4">
+                <div>
+                    <h1 class="text-2xl font-bold">Minima Bot v0.0.1</h1>
+                    <p class="text-gray-400">WhatsApp Automation Control Panel</p>
                 </div>
             </div>
+            <div class="flex items-center">
+                <span id="connectionStatus" class="mr-4">⭕ Disconnected</span>
+                <button id="settingsBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </header>
+
+        <div id="connectionPanel" class="panel">
+            <h2 class="text-xl font-bold mb-4">WhatsApp Connection</h2>
+            <div class="connection-methods">
+                <button onclick="connectWithQR()">Connect with QR</button>
+                <button onclick="showPairingCode()">Connect with Pairing Code</button>
+            </div>
+            <div id="qrCode" class="qr-container"></div>
+            <div id="pairingCode" class="pairing-container">
+                <input type="text" id="phoneNumber" placeholder="Enter phone number with country code">
+                <button onclick="connectWithPairingCode()">Generate Code</button>
+                <div id="pairingCodeDisplay"></div>
+            </div>
+            <div id="status" class="status"></div>
         </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="flex-grow container mx-auto px-4 py-6">
-        <div class="container">
-            <div id="connectionPanel" class="panel">
-                <h2>WhatsApp Connection</h2>
-                <div class="connection-methods">
-                    <button onclick="connectWithQR()">Connect with QR</button>
-                    <button onclick="showPairingCode()">Connect with Pairing Code</button>
+        <div id="controlPanel" class="panel" style="display: none;">
+            <div class="system-info">
+                <div class="info-card">
+                    <h3>Uptime</h3>
+                    <p id="uptimeValue">Loading...</p>
                 </div>
-                <div id="qrCode" class="qr-container"></div>
-                <div id="pairingCode" class="pairing-container">
-                    <input type="text" id="phoneNumber" placeholder="Enter phone number with country code">
-                    <button onclick="connectWithPairingCode()">Generate Code</button>
-                    <div id="pairingCodeDisplay"></div>
+                <div class="info-card">
+                    <h3>Memory Usage</h3>
+                    <p id="memoryValue">Loading...</p>
                 </div>
-                <div id="status" class="status"></div>
+                <div class="info-card">
+                    <h3>CPU Usage</h3>
+                    <p id="cpuValue">Loading...</p>
+                </div>
+                <div class="info-card">
+                    <h3>Messages Handled</h3>
+                    <p id="messagesValue">0</p>
+                </div>
             </div>
 
-            <div id="controlPanel" class="panel" style="display: none;">
-                <h2>Bot Control Panel</h2>
-                <div class="system-info">
-                    <h3>System Information</h3>
-                    <div id="systemStats"></div>
-                </div>
-                <div class="settings">
-                    <h3>Settings</h3>
-                    <div class="setting-item">
-                        <label>Auto Typing:</label>
+            <div class="settings-panel">
+                <h2 class="text-xl font-bold mb-4">Settings</h2>
+                <div class="setting-item">
+                    <span>Auto Typing</span>
+                    <label class="switch">
                         <input type="checkbox" id="autoTyping" checked>
-                    </div>
-                    <div class="setting-item">
-                        <label>Auto Recording:</label>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span>Auto Recording</span>
+                    <label class="switch">
                         <input type="checkbox" id="autoRecording" checked>
-                    </div>
-                </div>
-                <div class="logs">
-                    <h3>Logs</h3>
-                    <div id="logs"></div>
+                        <span class="slider round"></span>
+                    </label>
                 </div>
             </div>
-        </div>
 
-        <!-- Logs Section -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden mt-6">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800">
-                        <i class="fas fa-scroll mr-2 text-blue-500"></i> Activity Logs
-                    </h2>
-                    <div class="flex space-x-2">
-                        <button id="export-logs" class="text-sm text-gray-600 hover:text-purple-600 px-3 py-1 rounded-lg border border-gray-200 hover:border-purple-300">
-                            <i class="fas fa-download mr-1"></i> Export
-                        </button>
-                        <button id="clear-logs" class="text-sm text-gray-600 hover:text-purple-600 px-3 py-1 rounded-lg border border-gray-200 hover:border-purple-300">
-                            <i class="fas fa-trash-alt mr-1"></i> Clear
-                        </button>
-                    </div>
-                </div>
-                <div class="terminal log-container" id="log-container">
-                    <div class="log-entry log-info">[System] Minima Bot v0.0.1 initialized</div>
-                    <div class="log-entry log-info">[System] Control panel ready</div>
-                </div>
+            <div class="logs">
+                <h2 class="text-xl font-bold mb-4">Activity Logs</h2>
+                <div id="logContent"></div>
             </div>
         </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer text-white mt-8">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="mb-4 md:mb-0">
-                    <div class="flex items-center space-x-2">
-                        <div class="bg-white p-1 rounded">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                            </svg>
-                        </div>
-                        <span class="font-bold">Minima Bot v0.0.1</span>
-                    </div>
-                    <p class="text-sm text-gray-300 mt-1">Lightweight WhatsApp Automation Solution</p>
-                </div>
-                <div class="text-sm text-gray-300">
-                    <p>Developed with <i class="fas fa-heart text-red-400"></i> by <span class="font-medium">sirtheprogrammer</span></p>
-                    <p class="mt-1">© 2025 SIRTHEPROGRAMMER All rights reserved.</p>
-                </div>
-                <div class="flex space-x-4 mt-4 md:mt-0">
-                    <a href="#" class="text-gray-300 hover:text-white">
-                        <i class="fab fa-github text-xl"></i><a href="https://github.com/Sirtheprogrammer/Minima"></a>
-                    </a>
-                    <a href="#" class="text-gray-300 hover:text-white">
-                        <i class="fab fa-twitter text-xl"></i>
-                    </a>
-                    <a href="#" class="text-gray-300 hover:text-white">
-                        <i class="fab fa-discord text-xl"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Floating Action Button -->
-    <div class="fixed bottom-6 right-6">
-        <button id="quick-connect" class="floating-action bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110">
-            <i class="fas fa-bolt text-xl"></i>
-        </button>
     </div>
 
     <script>
         const socket = io();
-        let isConnected = false;
-        let reconnectAttempts = 0;
-        const MAX_RECONNECT_ATTEMPTS = 5;
-        const RECONNECT_DELAY = 5000;
+        let qrAttempts = 0;
+        const MAX_QR_ATTEMPTS = 5;
 
-        // Connection status handling
-        socket.on('connect', () => {
-            console.log('Connected to server');
-            reconnectAttempts = 0;
-            updateConnectionStatus('connected');
-            showNotification('Connected to server', 'success');
-        });
-
-        socket.on('disconnect', () => {
-            console.log('Disconnected from server');
-            updateConnectionStatus('disconnected');
-            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                reconnectAttempts++;
-                showNotification(`Disconnected. Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`, 'warning');
-                setTimeout(() => {
-                    console.log(`Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-                    socket.connect();
-                }, RECONNECT_DELAY);
-            } else {
-                showNotification('Failed to reconnect after multiple attempts. Please refresh the page.', 'error');
-            }
-        });
-
-        socket.on('error', (error) => {
-            console.error('Socket error:', error);
-            showNotification(error, 'error');
-        });
-
-        // WhatsApp connection status
-        socket.on('status', (data) => {
-            updateConnectionStatus(data.status);
-            if (data.status === 'connected') {
-                showNotification('WhatsApp connected successfully!', 'success');
-            } else if (data.status === 'disconnected') {
-                showNotification('WhatsApp disconnected', 'warning');
-            }
-        });
-
-        socket.on('qr', (qrUrl) => {
-            document.getElementById('qr-code').classList.remove('hidden');
-            document.getElementById('qr-placeholder').classList.add('hidden');
-            document.getElementById('pairing-code').classList.add('hidden');
-            document.getElementById('qr-code').querySelector('img').src = qrUrl;
-            showNotification('QR Code generated. Please scan with WhatsApp.', 'info');
-        });
-
-        socket.on('pairingCode', (code) => {
-            document.getElementById('pairing-code').classList.remove('hidden');
-            document.getElementById('qr-placeholder').classList.add('hidden');
-            document.getElementById('qr-code').classList.add('hidden');
-            document.getElementById('pairing-code').querySelector('.text-4xl').textContent = code;
-            showNotification(`Pairing code: ${code}. Please enter this in WhatsApp.`, 'info');
-        });
-
-        socket.on('connected', (data) => {
-            showNotification(data.message, 'success');
-            document.getElementById('connection-display').classList.add('hidden');
-        });
-
-        socket.on('message', (data) => {
-            appendLog(data.text);
-        });
-
-        // Status feature updates
-        socket.on('statusFeatureUpdate', (data) => {
-            document.getElementById('status-toggle').checked = data.enabled;
-            showNotification(`Status feature ${data.enabled ? 'enabled' : 'disabled'}`, 'info');
-        });
-
-        socket.on('statusEmojiUpdate', (data) => {
-            document.getElementById('status-emoji').value = data.emoji;
-            showNotification(`Status emoji updated to ${data.emoji}`, 'info');
-        });
-
-        socket.on('statusUpdate', (data) => {
-            if (data.type === 'reaction') {
-                const viewedCount = parseInt(document.getElementById('stats-viewed').textContent) + 1;
-                document.getElementById('stats-viewed').textContent = viewedCount;
-                
-                // Update type stats
-                const typeStats = document.getElementById('stats-viewed-types');
-                const currentTypes = typeStats.textContent.split(', ');
-                if (!currentTypes.includes(data.statusType)) {
-                    currentTypes.push(data.statusType);
-                    typeStats.textContent = currentTypes.join(', ');
-                }
-                
-                // Update reactions per hour
-                const reactionsCount = parseInt(document.getElementById('stats-reactions').textContent) + 1;
-                document.getElementById('stats-reactions').textContent = reactionsCount;
-                document.getElementById('stats-reactions-hour').textContent = 
-                    `${reactionsCount}/50 this hour`;
-            }
-        });
-
-        // Status type toggles
-        document.querySelectorAll('input[id^="status-type-"]').forEach(checkbox => {
-            checkbox.addEventListener('change', (e) => {
-                const type = e.target.id.replace('status-type-', '');
-                socket.emit('toggleStatusType', { type, enabled: e.target.checked });
-            });
-        });
-
-        // Helper functions
-        function updateConnectionStatus(status) {
-            const indicator = document.getElementById('status-indicator');
-            const statusText = document.getElementById('status-text');
-            
-            indicator.className = 'w-3 h-3 rounded-full';
-            statusText.className = 'text-sm font-medium';
-            
-            switch (status) {
-                case 'connected':
-                    indicator.classList.add('bg-green-500');
-                    statusText.classList.add('status-connected');
-                    statusText.textContent = 'Connected';
-                    break;
-                case 'connecting':
-                    indicator.classList.add('bg-yellow-500');
-                    statusText.classList.add('status-connecting');
-                    statusText.textContent = 'Connecting...';
-                    break;
-                case 'disconnected':
-                    indicator.classList.add('bg-red-500');
-                    statusText.classList.add('status-disconnected');
-                    statusText.textContent = 'Disconnected';
-                    break;
-            }
+        function connectWithQR() {
+            document.getElementById('qrCode').style.display = 'flex';
+            document.getElementById('pairingCode').style.display = 'none';
+            socket.emit('connectWithQR');
         }
 
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg ${
-                type === 'error' ? 'bg-red-500' :
-                type === 'success' ? 'bg-green-500' :
-                type === 'warning' ? 'bg-yellow-500' :
-                'bg-blue-500'
-            } text-white z-50`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 5000);
+        function showPairingCode() {
+            document.getElementById('qrCode').style.display = 'none';
+            document.getElementById('pairingCode').style.display = 'block';
         }
 
-        function appendLog(message) {
-            const logContainer = document.querySelector('.log-container');
-            if (!logContainer) return;
-            
-            const logEntry = document.createElement('div');
-            logEntry.className = 'py-1';
-            
-            const timestamp = new Date().toLocaleTimeString();
-            logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
-            
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        // Event listeners
-        document.getElementById('connect-qr').addEventListener('click', () => {
-            socket.emit('generatePairing', { method: 'qr' });
-            document.getElementById('pairing-form').classList.add('hidden');
-        });
-
-        document.getElementById('connect-pairing').addEventListener('click', () => {
-            document.getElementById('pairing-form').classList.remove('hidden');
-        });
-
-        document.getElementById('generate-pairing').addEventListener('click', () => {
-            const phoneNumber = document.getElementById('phone-number').value.trim();
+        function connectWithPairingCode() {
+            const phoneNumber = document.getElementById('phoneNumber').value;
             if (!phoneNumber) {
-                showNotification('Please enter a phone number', 'error');
+                alert('Please enter a phone number');
                 return;
             }
-            socket.emit('generatePairing', { method: 'pairingCode', phoneNumber });
-        });
-
-        document.getElementById('status-toggle').addEventListener('change', (e) => {
-            socket.emit('toggleStatusFeature', e.target.checked);
-        });
-
-        document.getElementById('set-emoji').addEventListener('click', () => {
-            const emoji = document.getElementById('status-emoji').value.trim();
-            if (emoji) {
-                socket.emit('setStatusEmoji', emoji);
-            }
-        });
-
-        // Command buttons
-        document.querySelectorAll('.command-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                const command = button.dataset.command;
-                if (command) {
-                    socket.emit('sendCommand', command);
-                    showNotification(`Sending command: ${command}`, 'info');
-                }
-            });
-        });
-
-        // Add manual command input
-        const commandInput = document.createElement('div');
-        commandInput.className = 'mt-4 flex space-x-2';
-        commandInput.innerHTML = `
-            <input type="text" id="manual-command" placeholder="Enter command (e.g., !help)" 
-                class="flex-grow border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-            <button id="send-command" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
-                Send
-            </button>
-        `;
-        
-        document.querySelector('.bg-gray-50.p-4.rounded-lg').appendChild(commandInput);
-        
-        document.getElementById('send-command').addEventListener('click', () => {
-            const command = document.getElementById('manual-command').value.trim();
-            if (command) {
-                socket.emit('sendCommand', command);
-                showNotification(`Sending command: ${command}`, 'info');
-                document.getElementById('manual-command').value = '';
-            }
-        });
-        
-        document.getElementById('manual-command').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const command = e.target.value.trim();
-                if (command) {
-                    socket.emit('sendCommand', command);
-                    showNotification(`Sending command: ${command}`, 'info');
-                    e.target.value = '';
-                }
-            }
-        });
-
-        socket.on('connectionSuccess', () => {
-            document.getElementById('connectionPanel').style.display = 'none';
-            document.getElementById('controlPanel').style.display = 'block';
-            updateSystemInfo();
-        });
-
-        function updateSystemInfo() {
-            socket.emit('getSystemInfo');
+            socket.emit('connectWithPairingCode', phoneNumber);
         }
 
-        socket.on('systemInfo', (info) => {
-            const statsDiv = document.getElementById('systemStats');
-            statsDiv.innerHTML = `
-                <div class="stat-item">
-                    <div class="stat-label">Uptime</div>
-                    <div class="stat-value">${info.uptime}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Platform</div>
-                    <div class="stat-value">${info.platform}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Node.js Version</div>
-                    <div class="stat-value">${info.nodeVersion}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Memory Usage</div>
-                    <div class="stat-value">${info.memoryUsage}</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">CPU Usage</div>
-                    <div class="stat-value">${info.cpuUsage}%</div>
-                </div>
-            `;
+        socket.on('qr', (qr) => {
+            const qrContainer = document.getElementById('qrCode');
+            qrContainer.innerHTML = `<img src="${qr}" alt="QR Code">`;
+            qrAttempts++;
+            
+            if (qrAttempts >= MAX_QR_ATTEMPTS) {
+                qrContainer.innerHTML += '<p class="text-red-500 mt-4">Maximum QR attempts reached. Please try again later.</p>';
+            }
+        });
+
+        socket.on('connection-status', (status) => {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = status === 'connected' ? '🟢 Connected' : '⭕ Disconnected';
+            statusElement.innerHTML = statusText;
+            
+            if (status === 'connected') {
+                document.getElementById('connectionPanel').style.display = 'none';
+                document.getElementById('controlPanel').style.display = 'block';
+            }
+        });
+
+        socket.on('system-info', (info) => {
+            document.getElementById('uptimeValue').textContent = info.uptime;
+            document.getElementById('memoryValue').textContent = info.memoryUsage;
+            document.getElementById('cpuValue').textContent = info.cpuUsage;
+        });
+
+        socket.on('log', (message) => {
+            const logContent = document.getElementById('logContent');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = message;
+            logContent.appendChild(logEntry);
+            logContent.scrollTop = logContent.scrollHeight;
         });
 
         // Update system info every 5 seconds
-        setInterval(updateSystemInfo, 5000);
+        setInterval(() => {
+            socket.emit('getSystemInfo');
+        }, 5000);
     </script>
 </body>
 </html>

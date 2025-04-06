@@ -1,32 +1,38 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+import os from 'os';
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('info')
-        .setDescription('Shows system information about the bot'),
-    async execute(interaction) {
+export default {
+    name: 'info',
+    description: 'Shows system information about the bot',
+    async execute(sock, msg, args) {
         try {
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('🤖 Bot System Information')
-                .setThumbnail('https://i.imgur.com/8QZQZQZ.png')
-                .addFields(
-                    { name: '🖥️ Platform', value: systemInfo.platform, inline: true },
-                    { name: '⚙️ Architecture', value: systemInfo.arch, inline: true },
-                    { name: '📦 Node.js', value: systemInfo.nodeVersion, inline: true },
-                    { name: '⏱️ Uptime', value: systemInfo.uptime(), inline: true },
-                    { name: '💾 Memory Usage', value: `${Math.round(systemInfo.memoryUsage.heapUsed / 1024 / 1024)}MB / ${Math.round(systemInfo.memoryUsage.heapTotal / 1024 / 1024)}MB`, inline: true },
-                    { name: '🔧 CPU Usage', value: `${Math.round(systemInfo.cpuUsage.user / 1000000)}s / ${Math.round(systemInfo.cpuUsage.system / 1000000)}s`, inline: true }
-                )
-                .setFooter({ text: 'Minima Bot v0.0.1' })
-                .setTimestamp();
+            const uptime = () => {
+                const seconds = Math.floor(process.uptime());
+                const days = Math.floor(seconds / (3600 * 24));
+                const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                return `${days}d ${hours}h ${minutes}m ${secs}s`;
+            };
 
-            await interaction.reply({ embeds: [embed] });
+            const infoText = `🤖 *Bot System Information*
+
+🖥️ *Platform:* ${os.platform()}
+⚙️ *Architecture:* ${os.arch()}
+📦 *Node.js:* ${process.version}
+⏱️ *Uptime:* ${uptime()}
+💾 *Memory Usage:* ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB
+🔧 *CPU Usage:* ${Math.round(os.loadavg()[0] * 100)}%
+
+_Minima Bot v0.0.1_`;
+
+            await sock.sendMessage(msg.key.remoteJid, { 
+                image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
+                caption: infoText
+            });
         } catch (error) {
             console.error('Error in info command:', error);
-            await interaction.reply({ 
-                content: 'There was an error while fetching system information. Please try again later.',
-                ephemeral: true 
+            await sock.sendMessage(msg.key.remoteJid, { 
+                text: 'There was an error while fetching system information. Please try again later.' 
             });
         }
     },
