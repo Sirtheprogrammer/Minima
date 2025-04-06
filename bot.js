@@ -9,6 +9,25 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import QRCode from 'qrcode';
 import { setupAntiDeleteListeners } from './commands/antidelete.js';
+import os from 'os';
+
+// System Information
+const systemInfo = {
+    startTime: Date.now(),
+    platform: os.platform(),
+    arch: os.arch(),
+    nodeVersion: process.version,
+    memoryUsage: process.memoryUsage(),
+    cpuUsage: process.cpuUsage(),
+    uptime: () => {
+        const uptime = Date.now() - systemInfo.startTime;
+        const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((uptime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((uptime % (1000 * 60)) / 1000);
+        return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+};
 
 const app = express();
 const server = app.listen(process.env.PORT || 3000, () => {
@@ -29,6 +48,9 @@ if (!fs.existsSync(sessionDir)) fs.mkdirSync(sessionDir);
 // WhatsApp Socket and State
 let sock = null;
 let isConnecting = false;
+let connectionAttempts = 0;
+const MAX_CONNECTION_ATTEMPTS = 5;
+const RECONNECT_DELAY = 5000; // 5 seconds
 const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
 
 // Status Configuration
@@ -199,64 +221,71 @@ const loadCommands = async () => {
     }
 };
 
-// Connect to WhatsApp
-async function connectToWhatsApp(method = 'qr', phoneNumber = null) {
+// Function to connect to WhatsApp
+async function connectToWhatsApp(method, phoneNumber) {
     if (isConnecting) {
-        io.emit('error', 'Connection already in progress. Please wait.');
+        console.log('Connection already in progress, skipping...');
         return;
     }
-
+    
+    isConnecting = true;
+    connectionAttempts++;
+    
     try {
-        // Only attempt to close if sock exists and is connected
-        if (sock && sock.ws && sock.ws.readyState !== WebSocket.CLOSED) {
-            console.log('Closing existing connection...');
-            sock.end();
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
-        isConnecting = true;
-        io.emit('message', { text: 'Initializing WhatsApp connection...' });
-
+        console.log(`Connecting to WhatsApp (attempt ${connectionAttempts}/${MAX_CONNECTION_ATTEMPTS})...`);
+        io.emit('status', { status: 'connecting' });
+        
+        // Create a new socket with proper error handling
         sock = makeWASocket({
             auth: state,
-            printQRInTerminal: false,
-            logger: pino({ level: autoStatusConfig.debug ? 'debug' : 'info' }),
-            browser: ['WhatsApp Bot', 'Chrome', '1.0'],
-            syncFullHistory: true,
+            printQRInTerminal: true,
+            browser: ['Minima Bot', 'Chrome', '1.0.0'],
+            connectTimeoutMs: 60000,
+            retryRequestDelayMs: 2000,
             markOnlineOnConnect: true,
-            connectTimeoutMs: 60000, // 60 seconds timeout
-            retryRequestDelayMs: 2000 // 2 seconds delay between retries
+            syncFullHistory: false,
+            defaultQueryTimeoutMs: 60000
         });
-
-        // Setup anti-delete listeners
-        setupAntiDeleteListeners(sock);
-
+        
+        // Set up event handlers
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
-
-            if (connection === 'connecting') {
-                io.emit('message', { text: 'Connecting to WhatsApp...' });
-                io.emit('status', { status: 'connecting' });
-            } else if (connection === 'open') {
-                isConnecting = false;
-                io.emit('connected', { message: 'Successfully paired with WhatsApp!' });
-                io.emit('status', { status: 'connected' });
-                console.log('WhatsApp Connected!');
-            } else if (connection === 'close') {
-                isConnecting = false;
-                const error = lastDisconnect?.error;
-                const statusCode = error instanceof Boom ? error.output.statusCode : null;
+            
+            if (connection === 'close') {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 405;
                 
                 console.log(`Connection closed. Status: ${statusCode || 'unknown'}. Reconnecting: ${shouldReconnect}`);
                 io.emit('status', { status: 'disconnected' });
                 io.emit('message', { text: `Disconnected. ${shouldReconnect ? 'Reconnecting...' : 'Please reconnect manually.'}` });
                 
-                if (shouldReconnect) {
-                    setTimeout(() => connectToWhatsApp(method, phoneNumber), 5000);
+                if (shouldReconnect && connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
+                    setTimeout(() => {
+                        isConnecting = false;
+                        connectToWhatsApp(method, phoneNumber);
+                    }, RECONNECT_DELAY);
+                } else {
+                    isConnecting = false;
+                }
+            } else if (connection === 'open') {
+                console.log('Connected to WhatsApp successfully!');
+                io.emit('status', { status: 'connected' });
+                io.emit('message', { text: 'Connected to WhatsApp successfully!' });
+                io.emit('connectionSuccess'); // New event to hide connection panel
+                isConnecting = false;
+                connectionAttempts = 0;
+                
+                // Set up anti-delete listeners
+                try {
+                    const { setupAntiDeleteListeners } = await import('./commands/antidelete.js');
+                    setupAntiDeleteListeners(sock);
+                    console.log('Anti-delete listeners set up successfully');
+                } catch (error) {
+                    console.error('Failed to set up anti-delete listeners:', error);
                 }
             }
-
+            
+            // Handle QR code
             if (method === 'qr' && qr) {
                 try {
                     const qrUrl = await QRCode.toDataURL(qr);
@@ -268,10 +297,10 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = null) {
                 }
             }
         });
-
+        
+        // Handle pairing code
         if (method === 'pairingCode' && phoneNumber) {
             try {
-                // Validate phone number format
                 if (!phoneNumber.match(/^\+[1-9]\d{1,14}$/)) {
                     throw new Error('Invalid phone number format. Please include country code (e.g., +1234567890)');
                 }
@@ -286,8 +315,8 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = null) {
                 isConnecting = false;
             }
         }
-
-        // Message Handling with improved error handling
+        
+        // Set up message handler with auto typing
         sock.ev.on('messages.upsert', async ({ messages }) => {
             const msg = messages[0];
             if (!msg?.message) return;
@@ -296,76 +325,89 @@ async function connectToWhatsApp(method = 'qr', phoneNumber = null) {
                 const text = msg.message.conversation || "";
                 const args = text.trim().split(/ +/);
                 const commandName = args.shift().toLowerCase();
-
-                if (commands.has(commandName)) {
-                    try {
-                        const response = await commands.get(commandName).execute(sock, msg, args);
-                        if (response) {
-                            await sock.sendMessage(msg.key.remoteJid, { text: response });
-                            io.emit('message', { text: `Command '${commandName}' executed: ${response}` });
-                        }
-                    } catch (error) {
-                        console.error(`Command execution error for ${commandName}:`, error);
-                        io.emit('error', `Command '${commandName}' failed: ${error.message}`);
-                        await sock.sendMessage(msg.key.remoteJid, { 
-                            text: `Error executing command: ${error.message}` 
-                        });
-                    }
-                }
-
-                // Status Handling with improved error handling
-                if (autoStatusConfig.enabled && msg.key.remoteJid?.endsWith('@broadcast')) {
-                    const statusId = `${msg.key.remoteJid}_${msg.key.id}`;
-                    const statusType = getStatusType(msg);
+                
+                // Start typing indicator
+                await sock.sendPresenceUpdate('composing', msg.key.remoteJid);
+                
+                // Check if it's a command (starts with .)
+                if (commandName.startsWith('.')) {
+                    const actualCommand = commandName.substring(1);
                     
-                    if (!autoStatusConfig.viewedStatuses.has(statusId) && autoStatusConfig.statusTypes[statusType]) {
+                    if (commands.has(actualCommand)) {
                         try {
-                            const success = await handleStatusReaction(sock, msg, statusId);
-                            if (success) {
-                                io.emit('message', { 
-                                    text: `Viewed and reacted to ${statusType} status from ${msg.key.remoteJid.split('@')[0]}` 
-                                });
-                                io.emit('statusUpdate', { 
-                                    type: 'reaction',
-                                    statusId,
-                                    statusType,
-                                    timestamp: Date.now()
-                                });
+                            console.log(`Executing command: ${actualCommand} with args:`, args);
+                            const response = await commands.get(actualCommand).execute(sock, msg, args);
+                            if (response) {
+                                // Send to the chat
+                                await sock.sendMessage(msg.key.remoteJid, { text: response });
+                                // Send to personal number if command was from web panel
+                                if (msg.key.remoteJid === 'web-panel') {
+                                    await sendToPersonalNumber(sock, `Command '${actualCommand}' executed: ${response}`);
+                                }
+                                io.emit('message', { text: `Command '${actualCommand}' executed: ${response}` });
                             }
                         } catch (error) {
-                            console.error('Status processing error:', error);
-                            io.emit('error', `Status processing failed: ${error.message}`);
+                            console.error(`Command execution error for ${actualCommand}:`, error);
+                            const errorMessage = `Command '${actualCommand}' failed: ${error.message}`;
+                            io.emit('error', errorMessage);
+                            await sock.sendMessage(msg.key.remoteJid, { text: errorMessage });
+                            if (msg.key.remoteJid === 'web-panel') {
+                                await sendToPersonalNumber(sock, errorMessage);
+                            }
+                        }
+                    } else {
+                        console.log(`Command not found: ${actualCommand}`);
+                        const notFoundMessage = `Command not found: ${actualCommand}. Use .help to see available commands.`;
+                        await sock.sendMessage(msg.key.remoteJid, { text: notFoundMessage });
+                        if (msg.key.remoteJid === 'web-panel') {
+                            await sendToPersonalNumber(sock, notFoundMessage);
                         }
                     }
                 }
+
+                // Stop typing indicator
+                await sock.sendPresenceUpdate('paused', msg.key.remoteJid);
             } catch (error) {
                 console.error('Message processing error:', error);
                 io.emit('error', `Message processing failed: ${error.message}`);
             }
         });
-
+        
         sock.ev.on('creds.update', saveCreds);
     } catch (error) {
         console.error('Connection error:', error);
-        io.emit('error', `Connection error: ${error.message}`);
+        io.emit('error', `Connection failed: ${error.message}`);
         isConnecting = false;
+        
+        if (connectionAttempts < MAX_CONNECTION_ATTEMPTS) {
+            setTimeout(() => {
+                connectToWhatsApp(method, phoneNumber);
+            }, RECONNECT_DELAY);
+        }
     }
 }
 
 // Socket.IO Integration
 io.on('connection', (socket) => {
-    console.log('Frontend connected');
-    socket.emit('statusSettings', {
-        enabled: autoStatusConfig.enabled,
-        emoji: autoStatusConfig.likeEmoji
+    console.log('Client connected');
+    
+    socket.on('getSystemInfo', () => {
+        const info = {
+            uptime: systemInfo.uptime(),
+            platform: systemInfo.platform,
+            nodeVersion: process.version,
+            memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+            cpuUsage: `${Math.round(os.loadavg()[0] * 100)}%`
+        };
+        socket.emit('systemInfo', info);
     });
-
-    socket.on('generatePairing', async ({ method, phoneNumber }) => {
-        if (method === 'pairingCode' && !phoneNumber) {
-            socket.emit('error', 'Phone number required for pairing code');
-            return;
-        }
-        await connectToWhatsApp(method, phoneNumber);
+    
+    socket.on('connectWithQR', () => {
+        connectToWhatsApp('qr');
+    });
+    
+    socket.on('connectWithPairingCode', (phoneNumber) => {
+        connectToWhatsApp('pairingCode', phoneNumber);
     });
 
     socket.on('toggleStatusFeature', (enabled) => {
@@ -398,18 +440,28 @@ setInterval(async () => {
     if (sock && autoStatusConfig.enabled && Date.now() - autoStatusConfig.lastCheck > autoStatusConfig.checkInterval) {
         autoStatusConfig.lastCheck = Date.now();
         try {
-            await sock.sendPresenceUpdate('available', 'status@broadcast');
-            statusDebugLog('Performed periodic status check');
+            // Check if the connection is active before attempting status check
+            if (sock.user && sock.user.id) {
+                await sock.sendPresenceUpdate('available', 'status@broadcast');
+                statusDebugLog('Performed periodic status check');
+            } else {
+                statusDebugLog('Skipping status check - connection not fully established');
+            }
         } catch (error) {
             console.error('Periodic status check failed:', error);
-            io.emit('error', `Status check failed: ${error.message}`);
+            // Don't emit error to frontend for every failed check to avoid flooding
+            if (error.message.includes('Cannot read properties of undefined')) {
+                statusDebugLog('Connection not ready for status check');
+            } else {
+                io.emit('error', `Status check failed: ${error.message}`);
+            }
         }
     }
 }, 15000);
 
 // Initialize
 await loadCommands().then(() => {
-    connectToWhatsApp().catch(err => {
+    connectToWhatsApp('qr', null).catch(err => {
         console.error('Initial connection error:', err);
         io.emit('error', `Initial connection failed: ${err.message}`);
     });
@@ -421,3 +473,16 @@ process.on('SIGINT', () => {
     if (sock) sock.end();
     server.close(() => process.exit(0));
 });
+
+// Function to send response to user's personal number
+async function sendToPersonalNumber(sock, response) {
+    try {
+        const personalNumber = process.env.PERSONAL_NUMBER;
+        if (personalNumber) {
+            await sock.sendMessage(`${personalNumber}@s.whatsapp.net`, { text: response });
+            console.log('Response sent to personal number');
+        }
+    } catch (error) {
+        console.error('Failed to send response to personal number:', error);
+    }
+}
