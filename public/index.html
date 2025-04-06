@@ -3,139 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Bot Control Panel</title>
+    <title>Minima Bot v0.0.1 - WhatsApp Control Panel</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
     <style>
-        .connected { color: #10B981; }
-        .disconnected { color: #EF4444; }
-        .connecting { color: #F59E0B; }
+        :root {
+            --primary: #6d28d9;
+            --primary-light: #8b5cf6;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+        
+        .status-connected { color: var(--secondary); }
+        .status-disconnected { color: #ef4444; }
+        .status-connecting { color: var(--accent); }
+        
         .log-container {
             max-height: 300px;
             overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary-light) #f1f1f1;
         }
+        
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .log-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .log-container::-webkit-scrollbar-thumb {
+            background-color: var(--primary-light);
+            border-radius: 10px;
+        }
+        
         .terminal {
-            background-color: #1E293B;
-            color: #E5E7EB;
-            font-family: monospace;
+            background-color: var(--dark);
+            color: #e5e7eb;
+            font-family: 'Fira Code', monospace;
             padding: 1rem;
             border-radius: 0.5rem;
         }
-        .success { color: #10B981; }
-        .error { color: #EF4444; }
-        .info { color: #3B82F6; }
-        .warning { color: #F59E0B; }
+        
+        .log-success { color: var(--secondary); }
+        .log-error { color: #ef4444; }
+        .log-info { color: #3b82f6; }
+        .log-warning { color: var(--accent); }
+        
+        .command-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .command-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .qr-container {
+            transition: all 0.3s ease;
+        }
+        
+        .floating-action {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, var(--dark), #111827);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto p-4">
-        <header class="bg-white shadow rounded-lg p-6 mb-6">
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="gradient-header text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
             <div class="flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800">WhatsApp Bot Control Panel</h1>
-                <div class="flex items-center space-x-2">
-                    <span id="status-indicator" class="w-3 h-3 rounded-full bg-red-500"></span>
-                    <span id="status-text" class="text-sm font-medium disconnected">Disconnected</span>
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Minima Bot <span class="text-purple-200">v0.0.1</span></h1>
+                        <p class="text-sm text-purple-100">WhatsApp Automation Control Panel</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                        <span id="status-indicator" class="w-3 h-3 rounded-full bg-red-500"></span>
+                        <span id="status-text" class="text-sm font-medium status-disconnected">Disconnected</span>
+                    </div>
+                    <button class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition">
+                        <i class="fas fa-cog"></i>
+                    </button>
                 </div>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Connection Section -->
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">Connection</h2>
-                
-                <div class="mb-6">
-                    <div class="flex space-x-2 mb-4">
-                        <button id="connect-qr" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                            Connect with QR
-                        </button>
-                        <button id="connect-pairing" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
-                            Connect with Pairing Code
-                        </button>
-                    </div>
-                    
-                    <div id="pairing-form" class="hidden mb-4">
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Connection Panel -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-semibold text-gray-800">
+                            <i class="fas fa-plug mr-2 text-purple-500"></i> Connection Manager
+                        </h2>
                         <div class="flex space-x-2">
-                            <input type="text" id="phone-number" placeholder="Phone Number (with country code)" 
-                                class="border rounded px-3 py-2 w-full" />
-                            <button id="generate-pairing" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                                Generate
+                            <button id="connect-qr" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-qrcode mr-2"></i> QR Code
+                            </button>
+                            <button id="connect-pairing" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg flex items-center">
+                                <i class="fas fa-mobile-alt mr-2"></i> Pairing Code
                             </button>
                         </div>
-                        <p class="text-sm text-gray-500 mt-1">Format: +1234567890 (include country code)</p>
                     </div>
-                </div>
-                
-                <div id="connection-display" class="flex justify-center items-center border-2 border-dashed border-gray-300 rounded-lg p-4 h-64">
-                    <div id="qr-placeholder" class="text-center text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                        </svg>
-                        <p>QR code will appear here</p>
+                    
+                    <div id="pairing-form" class="hidden mb-6 bg-gray-50 p-4 rounded-lg">
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="phone-number" placeholder="+1234567890" 
+                                    class="flex-grow border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent" />
+                                <button id="generate-pairing" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                                    Generate
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Include country code (e.g. +255 for TZ, +254 for KE)</p>
+                        </div>
                     </div>
-                    <div id="qr-code" class="hidden"></div>
-                    <div id="pairing-code" class="hidden text-center">
-                        <h3 class="text-xl font-bold mb-2">Pairing Code</h3>
-                        <div class="text-3xl font-mono tracking-widest bg-gray-100 p-4 rounded">----</div>
-                        <p class="mt-2 text-sm text-gray-600">
-                            Open WhatsApp on your phone > Settings > Linked Devices > Link a Device > Enter this code
-                        </p>
+                    
+                    <div id="connection-display" class="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-6 h-80 bg-gray-50">
+                        <div id="qr-placeholder" class="text-center text-gray-500">
+                            <div class="bg-purple-100 p-4 rounded-full inline-block mb-3">
+                                <i class="fas fa-qrcode text-purple-600 text-4xl"></i>
+                            </div>
+                            <h3 class="text-lg font-medium mb-1">Connection Method</h3>
+                            <p class="text-sm">Select QR code or pairing code to connect</p>
+                        </div>
+                        <div id="qr-code" class="hidden flex flex-col items-center">
+                            <img src="" alt="QR Code" class="w-48 h-48 mb-3">
+                            <p class="text-sm text-gray-600">Scan this QR code with WhatsApp</p>
+                            <p class="text-xs text-gray-500 mt-1">WhatsApp > Settings > Linked Devices</p>
+                        </div>
+                        <div id="pairing-code" class="hidden text-center">
+                            <div class="bg-purple-100 p-4 rounded-full inline-block mb-3">
+                                <i class="fas fa-key text-purple-600 text-3xl"></i>
+                            </div>
+                            <h3 class="text-lg font-medium mb-2">Pairing Code</h3>
+                            <div class="text-4xl font-mono tracking-widest bg-gray-100 p-4 rounded-lg mb-3">----</div>
+                            <p class="text-sm text-gray-600 max-w-md">
+                                Open WhatsApp on your phone > Settings > Linked Devices > Link a Device > Enter this code
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Features & Commands Section -->
-            <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">Features & Commands</h2>
-                
-                <div class="mb-6">
-                    <h3 class="font-medium text-gray-700 mb-2">Status Feature</h3>
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-3">
-                        <span>Auto-view & like statuses</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="status-toggle" class="sr-only peer">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-                    <div class="flex items-center space-x-2 mb-4">
-                        <input type="text" id="status-emoji" placeholder="Reaction Emoji" maxlength="2" 
-                            class="border rounded px-3 py-2 w-16 text-center text-xl" value="👍">
-                        <button id="set-emoji" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                            Set Emoji
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="font-medium text-gray-700 mb-2">Quick Commands</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="statusinfo">
-                            Status Info
-                        </button>
-                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="statusdebug">
-                            Toggle Debug
-                        </button>
-                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="checkstatus">
-                            Check Statuses
-                        </button>
-                        <button class="command-btn bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded text-sm" data-command="help">
-                            Help
-                        </button>
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-6">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-6">
+                        <i class="fas fa-bolt mr-2 text-yellow-500"></i> Quick Actions
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Status Feature Card -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-medium text-gray-700">
+                                    <i class="fas fa-heart mr-2 text-red-400"></i> Status Reactions
+                                </h3>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="status-toggle" class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="status-emoji" placeholder="😊" maxlength="2" 
+                                    class="border border-gray-300 rounded-lg px-3 py-2 w-16 text-center text-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent" value="👍">
+                                <button id="set-emoji" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
+                                    Set Reaction
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Commands Card -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-3">
+                                <i class="fas fa-terminal mr-2 text-blue-400"></i> Bot Commands
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="statusinfo">
+                                    <i class="fas fa-info-circle mr-1 text-blue-500"></i> Status Info
+                                </button>
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="statusdebug">
+                                    <i class="fas fa-bug mr-1 text-green-500"></i> Toggle Debug
+                                </button>
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="checkstatus">
+                                    <i class="fas fa-sync-alt mr-1 text-purple-500"></i> Check Statuses
+                                </button>
+                                <button class="command-btn bg-white hover:bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-200 flex items-center justify-center" data-command="help">
+                                    <i class="fas fa-question-circle mr-1 text-yellow-500"></i> Help
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Stats Card -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 class="font-medium text-gray-700 mb-3">
+                                <i class="fas fa-chart-bar mr-2 text-green-400"></i> Quick Stats
+                            </h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div class="text-xs text-gray-500">Status Viewed</div>
+                                    <div class="text-xl font-bold" id="stats-viewed">0</div>
+                                </div>
+                                <div class="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div class="text-xs text-gray-500">Reactions Sent</div>
+                                    <div class="text-xl font-bold" id="stats-reactions">0</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Logs Section -->
-        <div class="bg-white shadow rounded-lg p-6 mt-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Activity Logs</h2>
-                <button id="clear-logs" class="text-sm text-gray-500 hover:text-gray-700">Clear</button>
-            </div>
-            <div class="terminal log-container" id="log-container">
-                <div class="log-entry info">[System] WhatsApp Bot Control Panel loaded.</div>
+        <div class="bg-white rounded-xl shadow-md overflow-hidden mt-6">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-scroll mr-2 text-blue-500"></i> Activity Logs
+                    </h2>
+                    <div class="flex space-x-2">
+                        <button id="export-logs" class="text-sm text-gray-600 hover:text-purple-600 px-3 py-1 rounded-lg border border-gray-200 hover:border-purple-300">
+                            <i class="fas fa-download mr-1"></i> Export
+                        </button>
+                        <button id="clear-logs" class="text-sm text-gray-600 hover:text-purple-600 px-3 py-1 rounded-lg border border-gray-200 hover:border-purple-300">
+                            <i class="fas fa-trash-alt mr-1"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="terminal log-container" id="log-container">
+                    <div class="log-entry log-info">[System] Minima Bot v0.0.1 initialized</div>
+                    <div class="log-entry log-info">[System] Control panel ready</div>
+                </div>
             </div>
         </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer text-white mt-8">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <div class="bg-white p-1 rounded">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                            </svg>
+                        </div>
+                        <span class="font-bold">Minima Bot v0.0.1</span>
+                    </div>
+                    <p class="text-sm text-gray-300 mt-1">Lightweight WhatsApp Automation Solution</p>
+                </div>
+                <div class="text-sm text-gray-300">
+                    <p>Developed with <i class="fas fa-heart text-red-400"></i> by <span class="font-medium">sirtheprogrammer</span></p>
+                    <p class="mt-1">© 2025 SIRTHEPROGRAMMER All rights reserved.</p>
+                </div>
+                <div class="flex space-x-4 mt-4 md:mt-0">
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-github text-xl"></i><a href="https://github.com/Sirtheprogrammer/Minima"></a>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <i class="fab fa-discord text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-6 right-6">
+        <button id="quick-connect" class="floating-action bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110">
+            <i class="fas fa-bolt text-xl"></i>
+        </button>
     </div>
 
     <script>
@@ -145,11 +318,31 @@
         const statusIndicator = document.getElementById('status-indicator');
         const statusText = document.getElementById('status-text');
         
+        // Initialize stats
+        let stats = {
+            viewed: 0,
+            reactions: 0
+        };
+
         // Log management
         function addLog(message, type = 'info') {
             const logEntry = document.createElement('div');
-            logEntry.className = `log-entry ${type}`;
-            logEntry.textContent = message;
+            logEntry.className = `log-entry log-${type}`;
+            
+            // Add timestamp
+            const now = new Date();
+            const timestamp = now.toLocaleTimeString();
+            
+            // Create log message with icon based on type
+            let icon = '';
+            switch(type) {
+                case 'success': icon = '<i class="fas fa-check-circle mr-2"></i>'; break;
+                case 'error': icon = '<i class="fas fa-times-circle mr-2"></i>'; break;
+                case 'warning': icon = '<i class="fas fa-exclamation-triangle mr-2"></i>'; break;
+                default: icon = '<i class="fas fa-info-circle mr-2"></i>';
+            }
+            
+            logEntry.innerHTML = `<span class="text-gray-400">[${timestamp}]</span> ${icon} ${message}`;
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
         }
@@ -159,11 +352,25 @@
             addLog('[System] Logs cleared.', 'info');
         });
         
+        document.getElementById('export-logs').addEventListener('click', () => {
+            const logs = logContainer.innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `minima-bot-logs-${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addLog('[System] Logs exported.', 'success');
+        });
+        
         // Connection management
         document.getElementById('connect-qr').addEventListener('click', () => {
             socket.emit('generatePairing', { method: 'qr' });
             setConnectionStatus('connecting');
-            addLog('[System] Requesting QR code connection...', 'info');
+            addLog('[Connection] Requesting QR code connection...', 'info');
             
             // Show QR section
             document.getElementById('pairing-form').classList.add('hidden');
@@ -174,6 +381,7 @@
         
         document.getElementById('connect-pairing').addEventListener('click', () => {
             document.getElementById('pairing-form').classList.toggle('hidden');
+            addLog('[Connection] Pairing code method selected', 'info');
         });
         
         document.getElementById('generate-pairing').addEventListener('click', () => {
@@ -183,9 +391,14 @@
                 return;
             }
             
+            if (!phoneNumber.startsWith('+')) {
+                addLog('[Error] Phone number must start with country code (e.g. +1, +44)', 'error');
+                return;
+            }
+            
             socket.emit('generatePairing', { method: 'pairingCode', phoneNumber });
             setConnectionStatus('connecting');
-            addLog(`[System] Requesting pairing code for ${phoneNumber}...`, 'info');
+            addLog(`[Connection] Requesting pairing code for ${phoneNumber}...`, 'info');
             
             // Show pairing section
             document.getElementById('qr-placeholder').classList.add('hidden');
@@ -193,17 +406,37 @@
             document.getElementById('pairing-code').classList.remove('hidden');
         });
         
+        // Quick connect button
+        document.getElementById('quick-connect').addEventListener('click', () => {
+            socket.emit('generatePairing', { method: 'qr' });
+            setConnectionStatus('connecting');
+            addLog('[Connection] Quick connect initiated with QR code...', 'info');
+            
+            // Show QR section
+            document.getElementById('pairing-form').classList.add('hidden');
+            document.getElementById('qr-placeholder').classList.remove('hidden');
+            document.getElementById('qr-code').classList.add('hidden');
+            document.getElementById('pairing-code').classList.add('hidden');
+            
+            // Smooth scroll to connection section
+            document.querySelector('[href="#connection-display"]').scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+        
         // Status feature management
         document.getElementById('status-toggle').addEventListener('change', function() {
             socket.emit('toggleStatusFeature', this.checked);
-            addLog(`[System] Auto status feature ${this.checked ? 'enabled' : 'disabled'}.`, 'info');
+            addLog(`[Feature] Auto status reactions ${this.checked ? 'enabled' : 'disabled'}.`, this.checked ? 'success' : 'warning');
         });
         
         document.getElementById('set-emoji').addEventListener('click', () => {
-            const emoji = document.getElementById('status-emoji').value;
+            const emoji = document.getElementById('status-emoji').value.trim();
             if (emoji) {
                 socket.emit('setStatusEmoji', emoji);
-                addLog(`[System] Status reaction emoji set to ${emoji}`, 'info');
+                addLog(`[Feature] Status reaction emoji set to ${emoji}`, 'success');
+            } else {
+                addLog('[Error] Please enter an emoji', 'error');
             }
         });
         
@@ -213,17 +446,23 @@
                 const command = btn.getAttribute('data-command');
                 socket.emit('sendCommand', command);
                 addLog(`[Command] Executed: ${command}`, 'info');
+                
+                // Add small animation to button
+                btn.classList.add('animate-pulse');
+                setTimeout(() => {
+                    btn.classList.remove('animate-pulse');
+                }, 300);
             });
         });
         
         // Socket.IO event listeners
         socket.on('connect', () => {
-            addLog('[Socket] Connected to server.', 'success');
+            addLog('[System] Connected to server.', 'success');
         });
         
         socket.on('disconnect', () => {
             setConnectionStatus('disconnected');
-            addLog('[Socket] Disconnected from server.', 'error');
+            addLog('[System] Disconnected from server.', 'error');
         });
         
         socket.on('qr', (qrDataUrl) => {
@@ -232,18 +471,23 @@
             
             const qrDiv = document.getElementById('qr-code');
             qrDiv.classList.remove('hidden');
-            qrDiv.innerHTML = `<img src="${qrDataUrl}" alt="QR Code" class="max-w-full h-auto">`;
-            addLog('[QR] QR code received and displayed.', 'info');
+            qrDiv.querySelector('img').src = qrDataUrl;
+            addLog('[Connection] QR code received and displayed.', 'success');
         });
         
         socket.on('pairingCode', (code) => {
             document.getElementById('pairing-code').querySelector('div').textContent = code;
-            addLog(`[Pairing] Code generated: ${code}`, 'success');
+            addLog(`[Connection] Pairing code generated: ${code}`, 'success');
         });
         
         socket.on('connected', (data) => {
             setConnectionStatus('connected');
-            addLog('[WhatsApp] ' + data.message, 'success');
+            addLog('[Connection] ' + data.message, 'success');
+            
+            // Update UI to show connected state
+            document.getElementById('connect-qr').classList.remove('bg-purple-600', 'hover:bg-purple-700');
+            document.getElementById('connect-qr').classList.add('bg-green-500', 'hover:bg-green-600');
+            document.getElementById('connect-qr').innerHTML = '<i class="fas fa-check mr-2"></i> Connected';
         });
         
         socket.on('error', (message) => {
@@ -251,35 +495,46 @@
         });
         
         socket.on('message', (data) => {
-            addLog('[WhatsApp] ' + data.text);
+            addLog('[Bot] ' + data.text, 'info');
         });
         
         socket.on('statusFeatureUpdate', (data) => {
             document.getElementById('status-toggle').checked = data.enabled;
-            addLog(`[Status] Auto status feature ${data.enabled ? 'enabled' : 'disabled'}.`, 'info');
+            addLog(`[Feature] Auto status reactions ${data.enabled ? 'enabled' : 'disabled'}.`, 
+                  data.enabled ? 'success' : 'warning');
         });
         
         socket.on('statusEmojiUpdate', (data) => {
             document.getElementById('status-emoji').value = data.emoji;
-            addLog(`[Status] Reaction emoji set to ${data.emoji}`, 'info');
+            addLog(`[Feature] Reaction emoji set to ${data.emoji}`, 'success');
         });
         
         socket.on('statusSettings', (data) => {
             document.getElementById('status-toggle').checked = data.enabled;
             document.getElementById('status-emoji').value = data.emoji;
-            addLog(`[Status] Loaded settings - Enabled: ${data.enabled}, Emoji: ${data.emoji}`, 'info');
+            addLog(`[Feature] Loaded settings - Enabled: ${data.enabled}, Emoji: ${data.emoji}`, 'info');
+        });
+        
+        socket.on('statusViewed', () => {
+            stats.viewed++;
+            document.getElementById('stats-viewed').textContent = stats.viewed;
+        });
+        
+        socket.on('reactionSent', () => {
+            stats.reactions++;
+            document.getElementById('stats-reactions').textContent = stats.reactions;
         });
         
         // Utility functions
         function setConnectionStatus(status) {
-            statusText.className = status;
+            statusText.className = `status-${status}`;
             switch(status) {
                 case 'connected':
-                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500';
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
                     statusText.textContent = 'Connected';
                     break;
                 case 'connecting':
-                    statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-500';
+                    statusIndicator.className = 'w-3 h-3 rounded-full bg-yellow-500 animate-ping';
                     statusText.textContent = 'Connecting...';
                     break;
                 case 'disconnected':
@@ -289,6 +544,29 @@
                     break;
             }
         }
+        
+        // Initialize tooltips
+        document.querySelectorAll('[data-tooltip]').forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                const tooltip = document.createElement('div');
+                tooltip.className = 'absolute z-10 bg-black text-white text-xs rounded py-1 px-2';
+                tooltip.textContent = el.getAttribute('data-tooltip');
+                document.body.appendChild(tooltip);
+                
+                const rect = el.getBoundingClientRect();
+                tooltip.style.top = `${rect.top - 30}px`;
+                tooltip.style.left = `${rect.left + rect.width / 2 - tooltip.offsetWidth / 2}px`;
+                
+                el._tooltip = tooltip;
+            });
+            
+            el.addEventListener('mouseleave', () => {
+                if (el._tooltip) {
+                    document.body.removeChild(el._tooltip);
+                    delete el._tooltip;
+                }
+            });
+        });
     </script>
 </body>
 </html>
