@@ -1,15 +1,18 @@
 export default {
-    name: 'tagall',
-    description: 'Tag members in the group with various options',
-    usage: '.tagall [message] [--admins/-a] [--online/-o] [--limit/-l number] [--exclude/-e id1,id2]',
+    name: 'taglist',
+    description: 'Display a list of tagged members with message',
+    usage: '.taglist [message] [--admins/-a] [--online/-o] [--limit/-l number] [--exclude/-e id1,id2]',
     category: 'GROUP',
-    execute: async (sock, msg, args) => {
+    async execute(sock, msg, args) {
         try {
+            // Get group metadata
             const groupMetadata = await sock.groupMetadata(msg.key.remoteJid);
             const participants = groupMetadata.participants;
             
-            // Check if sender is admin for admin-only groups
+            // Get group settings
             const isAdminOnly = groupMetadata.announce === 'announcement';
+            
+            // Check if sender is admin for admin-only groups
             if (isAdminOnly) {
                 const senderIsAdmin = participants.find(p => p.id === msg.key.participant)?.admin;
                 if (!senderIsAdmin) {
@@ -23,7 +26,7 @@ export default {
             // Parse command arguments
             const options = {
                 type: 'all', // all, admins, online
-                message: 'Hey everyone! 👋', // Default message
+                message: 'Group Members List', // Default message
                 exclude: [], // Members to exclude
                 limit: 50 // Maximum number of mentions
             };
@@ -109,13 +112,11 @@ export default {
                 mentions: membersToTag
             });
 
-            return `✅ Tagged ${membersToTag.length} members${options.type !== 'all' ? ` (${options.type})` : ''}`;
-
         } catch (error) {
-            console.error('Tag command error:', error);
+            console.error('Error in taglist command:', error);
             await sock.sendMessage(msg.key.remoteJid, {
-                text: '❌ Failed to tag members. Please try again later.'
+                text: '❌ Error displaying tag list. Make sure this is a group chat.'
             });
         }
     }
-};
+}; 

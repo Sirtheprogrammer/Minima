@@ -42,7 +42,7 @@
             background: #7c3aed;
         }
         .qr-container {
-            display: flex;
+            display: none;
             justify-content: center;
             align-items: center;
             min-height: 300px;
@@ -61,6 +61,15 @@
             padding: 10px;
             border-radius: 5px;
             margin-right: 10px;
+            width: 250px;
+        }
+        .pairing-container button {
+            background: #8b5cf6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
         }
         .status {
             padding: 10px;
@@ -80,6 +89,15 @@
             margin: 5px 0;
             padding: 5px;
             border-left: 3px solid #8b5cf6;
+        }
+        .log-entry.error {
+            border-left-color: #ef4444;
+        }
+        .log-entry.warning {
+            border-left-color: #f59e0b;
+        }
+        .log-entry.success {
+            border-left-color: #10b981;
         }
         .system-info {
             display: grid;
@@ -113,6 +131,193 @@
         .setting-item:last-child {
             border-bottom: none;
         }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4d4d4d;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #8b5cf6;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #4d4d4d;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #8b5cf6;
+            color: #8b5cf6;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .command-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .command-card {
+            background: #3d3d3d;
+            border-radius: 8px;
+            padding: 15px;
+            transition: transform 0.2s;
+        }
+        .command-card:hover {
+            transform: translateY(-5px);
+        }
+        .command-name {
+            color: #8b5cf6;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .command-category {
+            display: inline-block;
+            background: #4d4d4d;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-bottom: 10px;
+        }
+        .command-description {
+            margin-bottom: 10px;
+            color: #d1d5db;
+        }
+        .command-usage {
+            background: #2d2d2d;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .command-execute {
+            margin-top: 10px;
+            display: flex;
+        }
+        .command-execute input {
+            flex-grow: 1;
+            background: #2d2d2d;
+            border: 1px solid #4d4d4d;
+            color: white;
+            padding: 8px;
+            border-radius: 4px 0 0 4px;
+        }
+        .command-execute button {
+            background: #8b5cf6;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+        .status-indicator.connected {
+            background-color: #10b981;
+        }
+        .status-indicator.connecting {
+            background-color: #f59e0b;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .log-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .log-filter {
+            background: #3d3d3d;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .log-filter.active {
+            background: #8b5cf6;
+        }
+        .log-timestamp {
+            color: #9ca3af;
+            margin-right: 5px;
+        }
+        .log-type {
+            display: inline-block;
+            width: 60px;
+            text-align: center;
+            margin-right: 5px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+        .log-type.info {
+            background: #3b82f6;
+        }
+        .log-type.error {
+            background: #ef4444;
+        }
+        .log-type.warning {
+            background: #f59e0b;
+        }
+        .log-type.success {
+            background: #10b981;
+        }
+        .log-type.command {
+            background: #8b5cf6;
+        }
+        .log-type.system {
+            background: #6b7280;
+        }
     </style>
 </head>
 <body>
@@ -126,7 +331,10 @@
                 </div>
             </div>
             <div class="flex items-center">
-                <span id="connectionStatus" class="mr-4">⭕ Disconnected</span>
+                <div class="connection-status mr-4">
+                    <div id="statusIndicator" class="status-indicator"></div>
+                    <span id="connectionStatus">Disconnected</span>
+                </div>
                 <button id="settingsBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-cog"></i>
                 </button>
@@ -136,59 +344,137 @@
         <div id="connectionPanel" class="panel">
             <h2 class="text-xl font-bold mb-4">WhatsApp Connection</h2>
             <div class="connection-methods">
-                <button onclick="connectWithQR()">Connect with QR</button>
-                <button onclick="showPairingCode()">Connect with Pairing Code</button>
+                <button id="qrButton" onclick="connectWithQR()">Connect with QR</button>
+                <button id="pairingButton" onclick="showPairingCode()">Connect with Pairing Code</button>
             </div>
             <div id="qrCode" class="qr-container"></div>
             <div id="pairingCode" class="pairing-container">
                 <input type="text" id="phoneNumber" placeholder="Enter phone number with country code">
                 <button onclick="connectWithPairingCode()">Generate Code</button>
-                <div id="pairingCodeDisplay"></div>
+                <div id="pairingCodeDisplay" class="mt-4 text-xl font-mono"></div>
             </div>
             <div id="status" class="status"></div>
         </div>
 
         <div id="controlPanel" class="panel" style="display: none;">
-            <div class="system-info">
-                <div class="info-card">
-                    <h3>Uptime</h3>
-                    <p id="uptimeValue">Loading...</p>
+            <div class="tabs">
+                <div class="tab active" data-tab="dashboard">Dashboard</div>
+                <div class="tab" data-tab="commands">Commands</div>
+                <div class="tab" data-tab="logs">System Logs</div>
+                <div class="tab" data-tab="settings">Settings</div>
+            </div>
+
+            <div id="dashboardTab" class="tab-content active">
+                <div class="system-info">
+                    <div class="info-card">
+                        <h3>Uptime</h3>
+                        <p id="uptimeValue">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Memory Usage</h3>
+                        <p id="memoryValue">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>CPU Usage</h3>
+                        <p id="cpuValue">Loading...</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Messages Handled</h3>
+                        <p id="messagesValue">0</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Commands Executed</h3>
+                        <p id="commandsValue">0</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>Bot Version</h3>
+                        <p id="versionValue">v0.0.1</p>
+                    </div>
                 </div>
-                <div class="info-card">
-                    <h3>Memory Usage</h3>
-                    <p id="memoryValue">Loading...</p>
-                </div>
-                <div class="info-card">
-                    <h3>CPU Usage</h3>
-                    <p id="cpuValue">Loading...</p>
-                </div>
-                <div class="info-card">
-                    <h3>Messages Handled</h3>
-                    <p id="messagesValue">0</p>
+
+                <div class="panel mt-4">
+                    <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg flex items-center justify-center" onclick="executeCommand('menu')">
+                            <i class="fas fa-list mr-2"></i> Show Menu
+                        </button>
+                        <button class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg flex items-center justify-center" onclick="executeCommand('help')">
+                            <i class="fas fa-question-circle mr-2"></i> Show Help
+                        </button>
+                        <button class="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg flex items-center justify-center" onclick="executeCommand('info')">
+                            <i class="fas fa-info-circle mr-2"></i> Show Info
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="settings-panel">
-                <h2 class="text-xl font-bold mb-4">Settings</h2>
-                <div class="setting-item">
-                    <span>Auto Typing</span>
-                    <label class="switch">
-                        <input type="checkbox" id="autoTyping" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <span>Auto Recording</span>
-                    <label class="switch">
-                        <input type="checkbox" id="autoRecording" checked>
-                        <span class="slider round"></span>
-                    </label>
+            <div id="commandsTab" class="tab-content">
+                <div class="panel">
+                    <h2 class="text-xl font-bold mb-4">Available Commands</h2>
+                    <div class="command-list" id="commandList">
+                        <!-- Commands will be loaded here -->
+                        <div class="text-center py-4">Loading commands...</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="logs">
-                <h2 class="text-xl font-bold mb-4">Activity Logs</h2>
-                <div id="logContent"></div>
+            <div id="logsTab" class="tab-content">
+                <div class="panel">
+                    <h2 class="text-xl font-bold mb-4">System Logs</h2>
+                    <div class="log-filters">
+                        <div class="log-filter active" data-filter="all">All</div>
+                        <div class="log-filter" data-filter="info">Info</div>
+                        <div class="log-filter" data-filter="error">Error</div>
+                        <div class="log-filter" data-filter="warning">Warning</div>
+                        <div class="log-filter" data-filter="success">Success</div>
+                        <div class="log-filter" data-filter="command">Command</div>
+                        <div class="log-filter" data-filter="system">System</div>
+                    </div>
+                    <div class="logs">
+                        <div id="logContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settingsTab" class="tab-content">
+                <div class="settings-panel">
+                    <h2 class="text-xl font-bold mb-4">Bot Settings</h2>
+                    <div class="setting-item">
+                        <span>Auto Typing</span>
+                        <label class="switch">
+                            <input type="checkbox" id="autoTyping" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>Auto Recording</span>
+                        <label class="switch">
+                            <input type="checkbox" id="autoRecording" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>Status Auto-Reply</span>
+                        <label class="switch">
+                            <input type="checkbox" id="statusAutoReply" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <span>Command Prefix</span>
+                        <div class="flex items-center">
+                            <input type="text" id="commandPrefix" value="." class="bg-gray-700 text-white px-2 py-1 rounded w-16 text-center">
+                            <button onclick="updatePrefix()" class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded">Update</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Typing Duration (ms)</span>
+                        <div class="flex items-center">
+                            <input type="number" id="typingDuration" value="1000" min="500" max="5000" step="100" class="bg-gray-700 text-white px-2 py-1 rounded w-24 text-center">
+                            <button onclick="updateTypingDuration()" class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded">Update</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -197,67 +483,290 @@
         const socket = io();
         let qrAttempts = 0;
         const MAX_QR_ATTEMPTS = 5;
+        let commands = [];
+        let logFilters = {
+            all: true,
+            info: false,
+            error: false,
+            warning: false,
+            success: false,
+            command: false,
+            system: false
+        };
+
+        // Initialize UI state
+        document.getElementById('qrCode').style.display = 'none';
+        document.getElementById('pairingCode').style.display = 'none';
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}Tab`).classList.add('active');
+            });
+        });
+
+        // Log filters
+        document.querySelectorAll('.log-filter').forEach(filter => {
+            filter.addEventListener('click', () => {
+                if (filter.dataset.filter === 'all') {
+                    document.querySelectorAll('.log-filter').forEach(f => f.classList.remove('active'));
+                    filter.classList.add('active');
+                    Object.keys(logFilters).forEach(key => logFilters[key] = key === 'all');
+                } else {
+                    document.querySelector('.log-filter[data-filter="all"]').classList.remove('active');
+                    filter.classList.toggle('active');
+                    logFilters.all = false;
+                    logFilters[filter.dataset.filter] = filter.classList.contains('active');
+                }
+                applyLogFilters();
+            });
+        });
+
+        function applyLogFilters() {
+            document.querySelectorAll('.log-entry').forEach(entry => {
+                const type = entry.dataset.type;
+                if (logFilters.all || logFilters[type]) {
+                    entry.style.display = 'block';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
 
         function connectWithQR() {
             document.getElementById('qrCode').style.display = 'flex';
             document.getElementById('pairingCode').style.display = 'none';
+            document.getElementById('statusIndicator').classList.add('connecting');
+            document.getElementById('statusIndicator').classList.remove('connected');
+            document.getElementById('connectionStatus').textContent = 'Connecting...';
             socket.emit('connectWithQR');
+            addLog('Generating QR code...', 'system');
         }
 
         function showPairingCode() {
             document.getElementById('qrCode').style.display = 'none';
             document.getElementById('pairingCode').style.display = 'block';
+            document.getElementById('phoneNumber').focus();
+            addLog('Switched to pairing code mode', 'system');
         }
 
         function connectWithPairingCode() {
             const phoneNumber = document.getElementById('phoneNumber').value;
             if (!phoneNumber) {
-                alert('Please enter a phone number');
+                addLog('Please enter a phone number', 'error');
                 return;
             }
+            document.getElementById('statusIndicator').classList.add('connecting');
+            document.getElementById('statusIndicator').classList.remove('connected');
+            document.getElementById('connectionStatus').textContent = 'Connecting...';
             socket.emit('connectWithPairingCode', phoneNumber);
+            addLog(`Generating pairing code for ${phoneNumber}...`, 'system');
         }
 
+        function executeCommand(command, args = '') {
+            if (!command) return;
+            
+            socket.emit('executeCommand', { command, args });
+            addLog(`Executing command: ${command} ${args}`, 'command');
+        }
+
+        function updatePrefix() {
+            const prefix = document.getElementById('commandPrefix').value;
+            if (!prefix) return;
+            
+            socket.emit('setPrefix', prefix);
+            addLog(`Command prefix updated to: ${prefix}`, 'system');
+        }
+
+        function updateTypingDuration() {
+            const duration = document.getElementById('typingDuration').value;
+            if (!duration || duration < 500 || duration > 5000) return;
+            
+            socket.emit('setTypingDuration', parseInt(duration));
+            addLog(`Typing duration updated to: ${duration}ms`, 'system');
+        }
+
+        // Socket event handlers
         socket.on('qr', (qr) => {
             const qrContainer = document.getElementById('qrCode');
             qrContainer.innerHTML = `<img src="${qr}" alt="QR Code">`;
             qrAttempts++;
+            addLog(`QR code generated (attempt ${qrAttempts}/${MAX_QR_ATTEMPTS})`, 'system');
             
             if (qrAttempts >= MAX_QR_ATTEMPTS) {
-                qrContainer.innerHTML += '<p class="text-red-500 mt-4">Maximum QR attempts reached. Please try again later.</p>';
+                addLog('Maximum QR attempts reached. Please try again later.', 'error');
             }
         });
 
+        socket.on('pairingCode', (code) => {
+            document.getElementById('pairingCodeDisplay').textContent = code;
+            addLog(`Pairing code generated: ${code}`, 'system');
+        });
+
         socket.on('connection-status', (status) => {
-            const statusElement = document.getElementById('connectionStatus');
-            const statusText = status === 'connected' ? '🟢 Connected' : '⭕ Disconnected';
-            statusElement.innerHTML = statusText;
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('connectionStatus');
             
             if (status === 'connected') {
+                statusIndicator.classList.remove('connecting');
+                statusIndicator.classList.add('connected');
+                statusText.textContent = 'Connected';
+                
                 document.getElementById('connectionPanel').style.display = 'none';
                 document.getElementById('controlPanel').style.display = 'block';
+                addLog('Connected to WhatsApp successfully!', 'success');
+                
+                // Load commands after connection
+                socket.emit('getCommands');
+            } else if (status === 'connecting') {
+                statusIndicator.classList.add('connecting');
+                statusIndicator.classList.remove('connected');
+                statusText.textContent = 'Connecting...';
+            } else {
+                statusIndicator.classList.remove('connecting', 'connected');
+                statusText.textContent = 'Disconnected';
+                addLog('Disconnected from WhatsApp', 'error');
             }
         });
+
+        socket.on('commands', (cmdList) => {
+            commands = cmdList;
+            renderCommands();
+        });
+
+        function renderCommands() {
+            const commandList = document.getElementById('commandList');
+            if (!commands.length) {
+                commandList.innerHTML = '<div class="text-center py-4">No commands available</div>';
+                return;
+            }
+
+            commandList.innerHTML = '';
+            
+            // Group commands by category
+            const categories = {};
+            commands.forEach(cmd => {
+                if (!categories[cmd.category]) {
+                    categories[cmd.category] = [];
+                }
+                categories[cmd.category].push(cmd);
+            });
+
+            // Render each category
+            Object.keys(categories).forEach(category => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'mb-6';
+                
+                const categoryTitle = document.createElement('h3');
+                categoryTitle.className = 'text-lg font-bold mb-3';
+                categoryTitle.textContent = category;
+                categoryDiv.appendChild(categoryTitle);
+                
+                const commandsGrid = document.createElement('div');
+                commandsGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+                
+                categories[category].forEach(cmd => {
+                    const cmdCard = document.createElement('div');
+                    cmdCard.className = 'command-card';
+                    
+                    cmdCard.innerHTML = `
+                        <div class="command-name">${cmd.name}</div>
+                        <div class="command-category">${cmd.category}</div>
+                        <div class="command-description">${cmd.description}</div>
+                        <div class="command-usage">${cmd.usage}</div>
+                        <div class="command-execute">
+                            <input type="text" placeholder="Arguments (optional)" id="args-${cmd.name}">
+                            <button onclick="executeCommand('${cmd.name}', document.getElementById('args-${cmd.name}').value)">Execute</button>
+                        </div>
+                    `;
+                    
+                    commandsGrid.appendChild(cmdCard);
+                });
+                
+                categoryDiv.appendChild(commandsGrid);
+                commandList.appendChild(categoryDiv);
+            });
+        }
 
         socket.on('system-info', (info) => {
             document.getElementById('uptimeValue').textContent = info.uptime;
             document.getElementById('memoryValue').textContent = info.memoryUsage;
             document.getElementById('cpuValue').textContent = info.cpuUsage;
+            document.getElementById('messagesValue').textContent = info.messagesHandled;
+            document.getElementById('commandsValue').textContent = info.commandsHandled;
+            document.getElementById('versionValue').textContent = info.version || 'v0.0.1';
         });
 
-        socket.on('log', (message) => {
+        socket.on('error', (error) => {
+            addLog(error, 'error');
+        });
+
+        socket.on('command-result', (result) => {
+            addLog(`Command result: ${result}`, 'success');
+        });
+
+        // Settings handlers
+        document.getElementById('autoTyping').addEventListener('change', (e) => {
+            socket.emit('setAutoTyping', e.target.checked);
+            addLog(`Auto typing ${e.target.checked ? 'enabled' : 'disabled'}`, 'system');
+        });
+
+        document.getElementById('autoRecording').addEventListener('change', (e) => {
+            socket.emit('setAutoRecording', e.target.checked);
+            addLog(`Auto recording ${e.target.checked ? 'enabled' : 'disabled'}`, 'system');
+        });
+
+        document.getElementById('statusAutoReply').addEventListener('change', (e) => {
+            socket.emit('toggleStatusFeature', e.target.checked);
+            addLog(`Status auto-reply ${e.target.checked ? 'enabled' : 'disabled'}`, 'system');
+        });
+
+        // Utility functions
+        function addLog(message, type = 'info') {
             const logContent = document.getElementById('logContent');
             const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            logEntry.textContent = message;
+            logEntry.className = `log-entry ${type}`;
+            logEntry.dataset.type = type;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+            
+            logEntry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-type ${type}">${typeLabel}</span>
+                <span class="log-message">${message}</span>
+            `;
+            
             logContent.appendChild(logEntry);
             logContent.scrollTop = logContent.scrollHeight;
-        });
+            
+            // Apply current filters
+            if (!logFilters.all && !logFilters[type]) {
+                logEntry.style.display = 'none';
+            }
+        }
 
         // Update system info every 5 seconds
         setInterval(() => {
             socket.emit('getSystemInfo');
         }, 5000);
+
+        // Initial connection status check
+        socket.on('connect', () => {
+            addLog('Connected to server', 'system');
+            document.getElementById('statusIndicator').classList.remove('connected');
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+        });
+
+        socket.on('disconnect', () => {
+            addLog('Disconnected from server', 'error');
+            document.getElementById('statusIndicator').classList.remove('connected');
+            document.getElementById('connectionStatus').textContent = 'Disconnected';
+        });
     </script>
 </body>
 </html>

@@ -1,68 +1,96 @@
 export default {
     name: 'help',
-    description: 'Shows help information for commands',
+    description: 'Shows information about commands',
     async execute(sock, msg, args) {
         try {
-            const commandName = args[0]?.toLowerCase();
-            
-            if (!commandName) {
-                const asciiArt = `
-╭━━━╮╱╱╱╱╱╱╱╱╱╭━━━╮
-┃╭━╮┃╱╱╱╱╱╱╱╱╱┃╭━╮┃
-┃┃╱┃┣━┳━━┳┳━╮╱┃╰━━┳━━┳━┳━━┳━╮
-┃╰━╯┃╭┫┃━╋┫╭╮╮╰━━╮┃╭╮┃╭┫┃━┫╭╯
-┃╭━╮┃┃┃┃━┫┃┃┃┃┃╰━╯┃╰╯┃┃┃┃━┫┃
-╰╯╱╰┻╯╰━━┻┻╯╰╯╰━━━┻━━┻╯╰━━┻╯
-`;
+            // If a specific command is specified, show detailed help for that command
+            if (args.length > 0) {
+                const commandName = args[0].toLowerCase();
+                const command = global.commands?.get(commandName);
+                
+                if (!command) {
+                    return `❌ Command "${commandName}" not found. Use .help to see all available commands.`;
+                }
 
-                const helpText = `${asciiArt}
+                const helpText = `
+╭━━━━━━━━━━━━━━━╮
+┃    *COMMAND HELP*    
+╰━━━━━━━━━━━━━━━╯
 
-*🤖 Minima Bot Help Menu*
+*📝 Command Details*
+▢ Name: ${command.name}
+▢ Description: ${command.description || 'No description available'}
+▢ Usage: .${command.name} ${command.usage || ''}
+${command.aliases ? `▢ Aliases: ${command.aliases.join(', ')}` : ''}
+${command.cooldown ? `▢ Cooldown: ${command.cooldown} seconds` : ''}
 
-Type \`.help <command>\` for detailed info about a specific command.
-
-*Available Commands:*
-
-*🛡️ Moderation*
-\`.ban\` \`.kick\` \`.mute\` \`.warn\`
-
-*⚙️ Settings*
-\`.prefix\` \`.language\` \`.welcome\`
-
-*🎮 Fun*
-\`.8ball\` \`.roll\` \`.coinflip\` \`.rps\`
-
-*ℹ️ Info*
-\`.help\` \`.ping\` \`.info\` \`.uptime\`
-
-*🛠️ Utility*
-\`.clear\` \`.poll\` \`.remind\` \`.translate\`
-
-*🎵 Music*
-\`.play\` \`.skip\` \`.queue\` \`.nowplaying\`
-
-*Made with ❤️ by @sirtheprogrammer*`;
+*ℹ️ Additional Info*
+${command.additionalInfo || 'No additional information available.'}`;
 
                 await sock.sendMessage(msg.key.remoteJid, {
                     image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
-                    caption: helpText,
-                    mentions: ['sirtheprogrammer@s.whatsapp.net']
+                    caption: helpText
                 });
                 return;
             }
 
-            // Handle specific command help
-            const commands = await import('../commands/index.js');
-            const command = commands[commandName];
+            // Show general help menu
+            const helpText = `
+╭━━━━━━━━━━━━━━━╮
+┃    *HELP MENU*    
+╰━━━━━━━━━━━━━━━╯
 
-            if (!command) {
-                return `Command \`${commandName}\` not found. Use \`.help\` to see all available commands.`;
-            }
+Welcome to Minima Bot Help!
+Use .help <command> for detailed info.
 
-            return `*Command:* ${command.name}\n*Description:* ${command.description}\n*Usage:* \`.${command.name} ${command.usage || ''}\``;
+*🛡️ MODERATION*
+▢ .ban - Ban a user
+▢ .kick - Kick a user
+▢ .mute - Mute a user
+▢ .warn - Warn a user
+
+*⚙️ SETTINGS*
+▢ .prefix - Change command prefix
+▢ .language - Set bot language
+▢ .welcome - Set welcome message
+
+*🎮 FUN*
+▢ .8ball - Ask the magic 8ball
+▢ .roll - Roll a dice
+▢ .coinflip - Flip a coin
+▢ .rps - Play rock, paper, scissors
+
+*ℹ️ INFO*
+▢ .help - Show this help menu
+▢ .ping - Check bot response time
+▢ .info - Show bot information
+▢ .uptime - Show bot uptime
+
+*🛠️ UTILITY*
+▢ .clear - Clear chat messages
+▢ .poll - Create a poll
+▢ .remind - Set a reminder
+▢ .translate - Translate text
+
+*🎵 MUSIC*
+▢ .play - Play a song
+▢ .skip - Skip current song
+▢ .queue - Show music queue
+▢ .nowplaying - Show current song
+
+╭━━━━━━━━━━━━━━━╮
+┃ Type .help <command> for more info
+╰━━━━━━━━━━━━━━━╯`;
+
+            await sock.sendMessage(msg.key.remoteJid, {
+                image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
+                caption: helpText
+            });
         } catch (error) {
             console.error('Error in help command:', error);
-            return 'Failed to display help. Please try again.';
+            await sock.sendMessage(msg.key.remoteJid, { 
+                text: 'There was an error while showing help. Please try again later.' 
+            });
         }
-    }
+    },
 }; 

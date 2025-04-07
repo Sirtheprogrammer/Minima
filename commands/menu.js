@@ -3,64 +3,70 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'menu',
-    description: 'Shows the bot menu with all available commands',
-    async execute(sock, msg, args) {
-        try {
-            const menuText = `
-╭━━━━━━━━━━━━━━━╮
-┃    *MINIMA BOT MENU*    
-┃    Version: 0.0.1
-╰━━━━━━━━━━━━━━━╯
+    description: 'Display bot menu and information',
+    usage: '.menu',
+    category: 'INFO',
+    async execute(client, msg) {
+        const botStatus = `
+╭═══〘 🤖 SirTheProgrammer-V1 〙═══⊷❍
+┃
+┃ ⌬ Owner : SirTheProgrammer
+┃ ⌬ Prefix : [${global.settings.prefix}]
+┃ ⌬ Mode : public
+┃ ⌬ Time : ${new Date().toLocaleTimeString()}
+┃ ⌬ Ram : ${process.memoryUsage().heapUsed / 1024 / 1024} MB
+┃ ⌬ Date : ${new Date().toLocaleDateString()}
+┃ ⌬ Uptime : ${global.systemInfo.getUptime()}
+┃ ⌬ Commands : ${global.commands.size}
+╰═══════════════════⊷❍
 
-*🛡️ MODERATION*
-▢ .ban
-▢ .kick
-▢ .mute
-▢ .warn
+╭═══〘 🤖 AI FEATURES 〙═══⊷❍
+┃ ⌬ .gemini [your question]
+┃ ⌬ .ytsearch [query]
+╰═══════════════════⊷❍
 
-*⚙️ SETTINGS*
-▢ .prefix
-▢ .language
-▢ .welcome
+╭═══〘 📥 DOWNLOADER 〙═══⊷❍
+┃ ⌬ .play [song name]
+┃ ⌬ .spotify [song name]
+╰═══════════════════⊷❍
 
-*🎮 FUN*
-▢ .8ball
-▢ .roll
-▢ .coinflip
-▢ .rps
+╭═══〘 🎮 FUN & GAMES 〙═══⊷❍
+┃ ⌬ .quote
+┃ ⌬ .joke
+┃ ⌬ .meme
+┃ ⌬ .fact
+┃ ⌬ .truth
+┃ ⌬ .dare
+╰═══════════════════⊷❍
 
-*ℹ️ INFO*
-▢ .help
-▢ .ping
-▢ .info
-▢ .uptime
+╭═══〘 ⚙️ SETTINGS 〙═══⊷❍
+┃ ⌬ .setprefix [new prefix]
+┃ ⌬ .setwelcome [message]
+┃ ⌬ .setgoodbye [message]
+╰═══════════════════⊷❍
 
-*🛠️ UTILITY*
-▢ .clear
-▢ .poll
-▢ .remind
-▢ .translate
+╭═══〘 👥 GROUP 〙═══⊷❍
+┃ ⌬ .kick @user
+┃ ⌬ .add @user
+┃ ⌬ .promote @user
+┃ ⌬ .demote @user
+┃ ⌬ .groupinfo
+╰═══════════════════⊷❍
 
-*🎵 MUSIC*
-▢ .play
-▢ .skip
-▢ .queue
-▢ .nowplaying
+╭═══〘 🛠️ UTILITY 〙═══⊷❍
+┃ ⌬ .sticker
+┃ ⌬ .toimg
+┃ ⌬ .tts [text]
+┃ ⌬ .translate [text]
+╰═══════════════════⊷❍
 
-╭━━━━━━━━━━━━━━━╮
-┃ Made with ❤️ by @sirtheprogrammer
-╰━━━━━━━━━━━━━━━╯`;
+╭═══〘 ℹ️ INFO 〙═══⊷❍
+┃ ⌬ .ping
+┃ ⌬ .runtime
+┃ ⌬ .info
+┃ ⌬ .help
+╰═══════════════════⊷❍`;
 
-            await sock.sendMessage(msg.key.remoteJid, {
-                image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
-                caption: menuText,
-                mentions: ['sirtheprogrammer@s.whatsapp.net']
-            });
-        } catch (error) {
-            console.error('Error in menu command:', error);
-            await sock.sendMessage(msg.key.remoteJid, { 
-                text: 'There was an error while displaying the menu. Please try again later.' 
-            });
-        }
-    },
+        await client.sendMessage(msg.from, { text: botStatus });
+    }
 };

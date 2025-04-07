@@ -1,25 +1,48 @@
 export default {
     name: 'ping',
-    description: 'Check bot response time',
-    async execute(sock, msg, args) {
+    description: 'Check bot\'s response time',
+    async execute(sock, msg) {
         try {
             const start = Date.now();
             
             // Send initial message
-            const pingMsg = await sock.sendMessage(msg.key.remoteJid, { text: '🏓 Pinging...' });
+            const sentMsg = await sock.sendMessage(msg.key.remoteJid, { text: '🏓 Pinging...' });
             
             // Calculate response time
-            const end = Date.now();
-            const responseTime = end - start;
+            const responseTime = Date.now() - start;
             
-            // Send final message with response time
+            // Get system info
+            const memoryUsage = process.memoryUsage();
+            const heapUsed = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+            const heapTotal = Math.round(memoryUsage.heapTotal / 1024 / 1024);
+            
+            const pingText = `
+╭━━━━━━━━━━━━━━━╮
+┃    *PING INFO*    
+╰━━━━━━━━━━━━━━━╯
+
+*🏓 Response Time*
+▢ Latency: ${responseTime}ms
+▢ API Latency: ${Math.round(sock.ws.ping || 0)}ms
+
+*📊 System Status*
+▢ Memory: ${heapUsed}MB / ${heapTotal}MB
+▢ Uptime: ${Math.floor(process.uptime() / 3600)}h ${Math.floor((process.uptime() % 3600) / 60)}m
+
+*📡 Connection*
+▢ Status: Connected
+▢ Mode: ${sock.type || 'Unknown'}`;
+
+            // Update the message with ping results
             await sock.sendMessage(msg.key.remoteJid, {
-                text: `*🏓 Pong!*\n\n*Response Time:* ${responseTime}ms\n*Status:* Online✨`,
-                edit: pingMsg.key
+                image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
+                caption: pingText
             });
         } catch (error) {
             console.error('Error in ping command:', error);
-            return 'Failed to measure ping. Please try again.';
+            await sock.sendMessage(msg.key.remoteJid, { 
+                text: 'There was an error while checking ping. Please try again later.' 
+            });
         }
-    }
+    },
 };

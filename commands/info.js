@@ -1,33 +1,49 @@
-import os from 'os';
-
 export default {
     name: 'info',
-    description: 'Shows system information about the bot',
-    async execute(sock, msg, args) {
+    description: 'Shows bot and system information',
+    async execute(sock, msg) {
         try {
-            const uptime = () => {
-                const seconds = Math.floor(process.uptime());
-                const days = Math.floor(seconds / (3600 * 24));
-                const hours = Math.floor((seconds % (3600 * 24)) / 3600);
-                const minutes = Math.floor((seconds % 3600) / 60);
-                const secs = seconds % 60;
+            const os = await import('os');
+            const startTime = process.uptime();
+            const uptime = (() => {
+                const seconds = Math.floor(startTime);
+                const days = Math.floor(seconds / (24 * 60 * 60));
+                const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+                const minutes = Math.floor((seconds % (60 * 60)) / 60);
+                const secs = Math.floor(seconds % 60);
                 return `${days}d ${hours}h ${minutes}m ${secs}s`;
-            };
+            })();
 
-            const infoText = `🤖 *Bot System Information*
+            const infoText = `
+╭━━━━━━━━━━━━━━━╮
+┃    *SYSTEM INFO*    
+╰━━━━━━━━━━━━━━━╯
 
-🖥️ *Platform:* ${os.platform()}
-⚙️ *Architecture:* ${os.arch()}
-📦 *Node.js:* ${process.version}
-⏱️ *Uptime:* ${uptime()}
-💾 *Memory Usage:* ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB
-🔧 *CPU Usage:* ${Math.round(os.loadavg()[0] * 100)}%
+*🤖 Bot Info*
+▢ Name: Minima Bot
+▢ Version: 0.0.1
+▢ Uptime: ${uptime}
 
-_Minima Bot v0.0.1_`;
+*💻 System Info*
+▢ Platform: ${os.platform()}
+▢ Architecture: ${os.arch()}
+▢ Node.js: ${process.version}
+▢ Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB
+▢ CPU Cores: ${os.cpus().length}
 
-            await sock.sendMessage(msg.key.remoteJid, { 
+*📊 Statistics*
+▢ Commands: ${global.commands?.size || 'N/A'}
+▢ Memory Usage: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)}MB
+▢ CPU Usage: ${(os.loadavg()[0] * 100).toFixed(2)}%
+
+╭━━━━━━━━━━━━━━━╮
+┃ Made with ❤️ by @sirtheprogrammer
+╰━━━━━━━━━━━━━━━╯`;
+
+            await sock.sendMessage(msg.key.remoteJid, {
                 image: { url: 'https://i.ibb.co/DP8NJcMN/Whats-App-Image-2025-04-02-at-12-17-28-PM.webp' },
-                caption: infoText
+                caption: infoText,
+                mentions: ['sirtheprogrammer@s.whatsapp.net']
             });
         } catch (error) {
             console.error('Error in info command:', error);
