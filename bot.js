@@ -4,17 +4,17 @@ import { Boom } from '@hapi/boom';
 import path from 'path';
 import fs from 'fs';
 import pino from 'pino';
-import { Server as SocketIOServer } from 'socket.io';
+import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import QRCode from 'qrcode';
 import { setupAntiDeleteListeners } from './commands/antidelete.js';
 import os from 'os';
-import { Client, LocalAuth } from 'whatsapp-web.js';
 import http from 'http';
-import socketIO from 'socket.io';
 import fsPromises from 'fs/promises';
 import { config } from 'dotenv';
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth } = pkg;
 
 config();
 
@@ -54,7 +54,7 @@ const systemInfo = {
 
 const app = express();
 const server = http.createServer(app);
-const io = new SocketIOServer(server);
+const io = new Server(server);
 
 // Serve static files (frontend)
 const __filename = fileURLToPath(import.meta.url);
@@ -175,13 +175,18 @@ global.settings = {
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        headless: 'new',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
-            '--disable-gpu'
-        ]
+            '--no-first-run',
+            '--no-zygote',
+            '--disable-gpu',
+            '--single-process'
+        ],
+        executablePath: process.env.CHROME_BIN || null
     }
 });
 
@@ -191,14 +196,9 @@ global.commands = new Map();
 // Load commands
 async function loadCommands() {
     try {
-        const commandFiles = await fsPromises.readdir('./commands');
-        for (const file of commandFiles) {
-            if (file.endsWith('.js')) {
-                const command = await import(`./commands/${file}`);
-                global.commands.set(command.default.name, command.default);
-                console.log(`Loaded command: ${command.default.name}`);
-            }
-        }
+        const { loadCommands: loadCommandsFromIndex } = await import('./commands/index.js');
+        await loadCommandsFromIndex();
+        console.log('All commands loaded successfully');
     } catch (error) {
         console.error('Error loading commands:', error);
     }
@@ -277,12 +277,15 @@ async function executeCommand(command, msg, args) {
     }
 }
 
-// Socket.io connection handling
+// Add this near the top with other global variables
+let isAuthenticated = false;
+
+// Update the socket.io connection handler
 io.on('connection', (socket) => {
     console.log('Frontend connected');
     
-    // Send initial connection status
-    socket.emit('connection-status', client.pupPage ? 'connected' : 'disconnected');
+    // Send initial connection status based on actual authentication
+    socket.emit('connection-status', isAuthenticated ? 'connected' : 'disconnected');
     
     // Send initial system info
     socket.emit('system-info', {
@@ -387,7 +390,11 @@ io.on('connection', (socket) => {
         }
         
         isConnecting = true;
+        isAuthenticated = false;
         connectionAttempts = 0;
+        
+        // Clear any existing QR code first
+        socket.emit('qr', null);
         
         // Notify frontend of connecting status
         socket.emit('connection-status', 'connecting');
@@ -397,6 +404,8 @@ io.on('connection', (socket) => {
             console.error('Failed to initialize client:', err);
             socket.emit('error', 'Failed to initialize WhatsApp client');
             isConnecting = false;
+            isAuthenticated = false;
+            socket.emit('connection-status', 'disconnected');
         });
     });
 
@@ -427,8 +436,11 @@ io.on('connection', (socket) => {
     });
 });
 
-// WhatsApp client events
+// Update WhatsApp client events
 client.on('qr', (qr) => {
+    console.log('QR Code received');
+    isAuthenticated = false;
+    
     // Generate QR code as data URL
     QRCode.toDataURL(qr, (err, url) => {
         if (err) {
@@ -436,7 +448,8 @@ client.on('qr', (qr) => {
             return;
         }
         
-        // Send QR code to all connected clients
+        // Send QR code and update connection status
+        io.emit('connection-status', 'awaiting_qr');
         io.emit('qr', url);
     });
 });
@@ -444,24 +457,32 @@ client.on('qr', (qr) => {
 client.on('ready', () => {
     console.log('Client is ready!');
     isConnecting = false;
+    isAuthenticated = true;
     io.emit('connection-status', 'connected');
 });
 
 client.on('authenticated', () => {
     console.log('Client is authenticated!');
+    isAuthenticated = true;
+    io.emit('connection-status', 'connected');
 });
 
 client.on('auth_failure', (err) => {
     console.error('Authentication failure:', err);
-    io.emit('error', 'Authentication failed');
+    isAuthenticated = false;
     isConnecting = false;
+    io.emit('error', 'Authentication failed');
     io.emit('connection-status', 'disconnected');
 });
 
 client.on('disconnected', (reason) => {
     console.log('Client was disconnected:', reason);
+    isAuthenticated = false;
     isConnecting = false;
     io.emit('connection-status', 'disconnected');
+    
+    // Clear any existing QR code
+    io.emit('qr', null);
 });
 
 // Initialize bot

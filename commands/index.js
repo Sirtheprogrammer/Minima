@@ -7,18 +7,6 @@ const commands = new Map();
 const commandFiles = readdirSync(__dirname)
     .filter(file => file.endsWith('.js') && file !== 'index.js');
 
-for (const file of commandFiles) {
-    try {
-        const command = await import(join(__dirname, file));
-        if (command.default?.name) {
-            commands.set(command.default.name, command.default);
-            console.log(`Loaded command: ${command.default.name}`);
-        }
-    } catch (error) {
-        console.error(`Error loading command ${file}:`, error);
-    }
-}
-
 // Command categories
 export const categories = {
     MODERATION: ['ban', 'kick', 'mute', 'warn'],
@@ -28,6 +16,22 @@ export const categories = {
     UTILITY: ['clear', 'poll', 'remind', 'translate'],
     MUSIC: ['play', 'skip', 'queue', 'nowplaying']
 };
+
+// Load commands function
+export async function loadCommands() {
+    for (const file of commandFiles) {
+        try {
+            const command = await import(join(__dirname, file));
+            if (command.default?.name) {
+                commands.set(command.default.name, command.default);
+                console.log(`Loaded command: ${command.default.name}`);
+            }
+        } catch (error) {
+            console.error(`Error loading command ${file}:`, error);
+        }
+    }
+    return commands;
+}
 
 // Get commands by category
 export function getCommandsByCategory(category) {

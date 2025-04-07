@@ -318,6 +318,21 @@
         .log-type.system {
             background: #6b7280;
         }
+        #qr-container {
+            display: none;
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        #qr-code {
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        .status-connected { color: #4CAF50; }
+        .status-disconnected { color: #f44336; }
+        .status-connecting { color: #2196F3; }
+        .status-awaiting-qr { color: #FF9800; }
     </style>
 </head>
 <body>
@@ -481,6 +496,7 @@
 
     <script>
         const socket = io();
+        let connectionStatus = 'disconnected';
         let qrAttempts = 0;
         const MAX_QR_ATTEMPTS = 5;
         let commands = [];
@@ -590,47 +606,75 @@
             addLog(`Typing duration updated to: ${duration}ms`, 'system');
         }
 
-        // Socket event handlers
-        socket.on('qr', (qr) => {
+        // Connection status handler
+        socket.on('connection-status', (status) => {
+            connectionStatus = status;
+            updateConnectionUI(status);
+        });
+
+        // QR code handler
+        socket.on('qr', (qrDataUrl) => {
             const qrContainer = document.getElementById('qrCode');
-            qrContainer.innerHTML = `<img src="${qr}" alt="QR Code">`;
-            qrAttempts++;
-            addLog(`QR code generated (attempt ${qrAttempts}/${MAX_QR_ATTEMPTS})`, 'system');
+            const qrImage = document.getElementById('qr-code');
+            const connectButton = document.getElementById('connect-button');
             
-            if (qrAttempts >= MAX_QR_ATTEMPTS) {
-                addLog('Maximum QR attempts reached. Please try again later.', 'error');
+            if (qrDataUrl) {
+                qrContainer.style.display = 'block';
+                qrImage.src = qrDataUrl;
+                connectButton.disabled = true;
+            } else {
+                qrContainer.style.display = 'none';
+                qrImage.src = '';
+                connectButton.disabled = false;
             }
         });
+
+        function updateConnectionUI(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            const connectButton = document.getElementById('connect-button');
+            const qrContainer = document.getElementById('qrCode');
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.textContent = 'Connected';
+                    statusElement.className = 'status-connected';
+                    connectButton.disabled = true;
+                    qrContainer.style.display = 'none';
+                    break;
+                
+                case 'disconnected':
+                    statusElement.textContent = 'Disconnected';
+                    statusElement.className = 'status-disconnected';
+                    connectButton.disabled = false;
+                    qrContainer.style.display = 'none';
+                    break;
+                
+                case 'connecting':
+                    statusElement.textContent = 'Connecting...';
+                    statusElement.className = 'status-connecting';
+                    connectButton.disabled = true;
+                    qrContainer.style.display = 'none';
+                    break;
+                
+                case 'awaiting_qr':
+                    statusElement.textContent = 'Scan QR Code';
+                    statusElement.className = 'status-awaiting-qr';
+                    connectButton.disabled = true;
+                    qrContainer.style.display = 'block';
+                    break;
+            }
+        }
+
+        // Connect button handler
+        function connect() {
+            if (connectionStatus === 'disconnected') {
+                socket.emit('connectWithQR');
+            }
+        }
 
         socket.on('pairingCode', (code) => {
             document.getElementById('pairingCodeDisplay').textContent = code;
             addLog(`Pairing code generated: ${code}`, 'system');
-        });
-
-        socket.on('connection-status', (status) => {
-            const statusIndicator = document.getElementById('statusIndicator');
-            const statusText = document.getElementById('connectionStatus');
-            
-            if (status === 'connected') {
-                statusIndicator.classList.remove('connecting');
-                statusIndicator.classList.add('connected');
-                statusText.textContent = 'Connected';
-                
-                document.getElementById('connectionPanel').style.display = 'none';
-                document.getElementById('controlPanel').style.display = 'block';
-                addLog('Connected to WhatsApp successfully!', 'success');
-                
-                // Load commands after connection
-                socket.emit('getCommands');
-            } else if (status === 'connecting') {
-                statusIndicator.classList.add('connecting');
-                statusIndicator.classList.remove('connected');
-                statusText.textContent = 'Connecting...';
-            } else {
-                statusIndicator.classList.remove('connecting', 'connected');
-                statusText.textContent = 'Disconnected';
-                addLog('Disconnected from WhatsApp', 'error');
-            }
         });
 
         socket.on('commands', (cmdList) => {
